@@ -58,6 +58,7 @@ class viewer : viewer_context {
   void select_destination_vertex(float x, float y);
 
   void compute_dijkstra_path();
+  void update_line();
 
  private:
   sf::Vector2i mouse_pos{};
@@ -93,9 +94,10 @@ class viewer : viewer_context {
 
   shader_manager shaders{};
 
-  polyhedral_surface::vertex_id origin_vertex = polyhedral_surface::invalid;
-  polyhedral_surface::vertex_id destination_vertex = polyhedral_surface::invalid;
-
+  polyhedral_surface::vertex_id origin_vertex =  //
+      polyhedral_surface::invalid;
+  polyhedral_surface::vertex_id destination_vertex =  //
+      polyhedral_surface::invalid;
 
   bool selecting = false;
   //
@@ -103,6 +105,8 @@ class viewer : viewer_context {
   points device_destination;
   //
   points device_line;
+  //
+  vector<polyhedral_surface::vertex_id> line_vids{};
 };
 
 }  // namespace hyperreflex

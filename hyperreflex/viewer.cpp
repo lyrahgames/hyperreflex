@@ -90,7 +90,6 @@ void viewer::process_events() {
       switch (event.mouseButton.button) {
         case sf::Mouse::Right:
           select_destination_vertex(event.mouseButton.x, event.mouseButton.y);
-          compute_dijkstra_path();
           selecting = false;
           break;
       }
@@ -128,7 +127,6 @@ void viewer::process_events() {
     if (mouse_move != sf::Vector2i{}) {
       if (selecting) {
         select_destination_vertex(mouse_pos.x, mouse_pos.y);
-        compute_dijkstra_path();
       }
     }
 
@@ -345,9 +343,11 @@ auto viewer::select_vertex(float x, float y) -> polyhedral_surface::vertex_id {
 
 void viewer::select_origin_vertex(float x, float y) {
   destination_vertex = polyhedral_surface::invalid;
+  line_vids.clear();
   origin_vertex = select_vertex(x, y);
   if (origin_vertex == polyhedral_surface::invalid) return;
   // cout << "origin vid = " << origin_vertex << endl;
+  line_vids.push_back(origin_vertex);
   device_origin.vertices = {surface.vertices[origin_vertex].position};
   device_origin.update();
 }
@@ -359,6 +359,8 @@ void viewer::select_destination_vertex(float x, float y) {
   // cout << "destination vid = " << destination_vertex << endl;
   device_destination.vertices = {surface.vertices[destination_vertex].position};
   device_destination.update();
+
+  update_line();
 }
 
 void viewer::compute_dijkstra_path() {
@@ -407,13 +409,65 @@ void viewer::compute_dijkstra_path() {
   const auto network = FlipEdgeNetwork::constructFromDijkstraPath(
       mesh, geometry, Vertex{&mesh, origin_vertex},
       Vertex{&mesh, destination_vertex});
-  network->iterativeShorten();
+  // network->iterativeShorten();
   network->posGeom = &geometry;
   vector<Vector3> path = network->getPathPolyline3D().front();
 
   device_line.vertices.clear();
   for (const auto& v : path)
     device_line.vertices.push_back(vec3{real(v.x), real(v.y), real(v.z)});
+  device_line.update();
+}
+
+void viewer::update_line() {
+  if ((destination_vertex == polyhedral_surface::invalid) ||
+      (origin_vertex == destination_vertex))
+    return;
+
+  using namespace geometrycentral;
+  using namespace surface;
+
+  // Generate polygon data for constructors.
+  //
+  vector<vector<size_t>> polygons(surface.faces.size());
+  for (size_t i = 0; const auto& f : surface.faces) {
+    polygons[i].resize(3);
+    for (size_t j = 0; j < 3; ++j) polygons[i][j] = f[j];
+    ++i;
+  }
+  //
+  ManifoldSurfaceMesh mesh{polygons};
+
+  // Generate vertex data for constructors.
+  //
+  VertexData<Vector3> vertices(mesh);
+  for (size_t i = 0; i < surface.vertices.size(); ++i) {
+    vertices[i].x = surface.vertices[i].position.x;
+    vertices[i].y = surface.vertices[i].position.y;
+    vertices[i].z = surface.vertices[i].position.z;
+  }
+  //
+  VertexPositionGeometry geometry{mesh, vertices};
+
+  const auto network = FlipEdgeNetwork::constructFromDijkstraPath(
+      mesh, geometry, Vertex{&mesh, origin_vertex},
+      Vertex{&mesh, destination_vertex});
+  network->posGeom = &geometry;
+  const auto path = network->getPathPolyline();
+
+  assert(path.size() == 1);
+  // cout << path[0].size() << endl;
+  assert(path[0].front().vertex.getIndex() == origin_vertex);
+  assert(path[0].back().vertex.getIndex() == destination_vertex);
+
+  for (size_t i = 1; i < path[0].size(); ++i)
+    line_vids.push_back(path[0][i].vertex.getIndex());
+
+  origin_vertex = destination_vertex;
+
+  device_line.vertices.clear();
+  for (auto vid : line_vids)
+    device_line.vertices.push_back(surface.vertices[vid].position);
   device_line.update();
 }
 
