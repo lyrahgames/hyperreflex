@@ -84,18 +84,6 @@ void viewer::process_events() {
         case sf::Keyboard::Num2:
           set_z_as_up();
           break;
-        case sf::Keyboard::N:
-          expand_selection();
-          break;
-        case sf::Keyboard::X:
-          group = (group + 1) % surface.component_count();
-          select_component();
-          break;
-        case sf::Keyboard::Y:
-          group = (group + surface.component_count() - 1) %
-                  surface.component_count();
-          select_component();
-          break;
         case sf::Keyboard::Z:
           sort_surface_faces_by_depth();
           break;
@@ -169,40 +157,6 @@ void viewer::render() {
 
   // shaders.names["contours"]->second.shader.bind();
   // surface.render();
-
-  // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-  // selection_shader.bind();
-
-  surface.device_handle.bind();
-
-  shaders.names["selection"]->second.shader.bind();
-  selection.bind();
-  glDrawElements(GL_TRIANGLES, 3 * selection.size() / sizeof(GL_UNSIGNED_INT),
-                 GL_UNSIGNED_INT, 0);
-
-  shaders.names["boundary"]->second.shader.bind();
-  surface_boundary.bind();
-  glDrawElements(GL_LINES, surface_boundary.size() / sizeof(GL_UNSIGNED_INT),
-                 GL_UNSIGNED_INT, 0);
-
-  glDepthFunc(GL_ALWAYS);
-
-  shaders.names["unoriented"]->second.shader.bind();
-  surface_unoriented_edges.bind();
-  glDrawElements(GL_LINES,
-                 surface_unoriented_edges.size() / sizeof(GL_UNSIGNED_INT),
-                 GL_UNSIGNED_INT, 0);
-
-  shaders.names["inconsistent"]->second.shader.bind();
-  surface_inconsistent_edges.bind();
-  glDrawElements(GL_LINES,
-                 surface_inconsistent_edges.size() / sizeof(GL_UNSIGNED_INT),
-                 GL_UNSIGNED_INT, 0);
-
-  // glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-  // edge_selection.bind();
-  // glDrawElements(GL_LINES, edge_selection.size(), GL_UNSIGNED_INT, 0);
 }
 
 void viewer::run() {
@@ -266,15 +220,9 @@ void viewer::load_surface(const filesystem::path& path) {
       const auto load_end = clock::now();
 
       cout << "loaded" << endl;
-
-      const auto preprocess_start = clock::now();
-      surface.generate_topological_structure();
-      const auto preprocess_end = clock::now();
-
       // Evaluate loading and processing time.
       surface_load_time = duration<float32>(load_end - load_start).count();
-      surface_process_time =
-          duration<float32>(preprocess_end - preprocess_start).count();
+
     } catch (exception& e) {
       cout << "failed.\n" << e.what() << endl;
       return;
@@ -296,41 +244,6 @@ void viewer::handle_surface_load_task() {
   surface.update();
   fit_view();
   print_surface_info();
-
-  vector<uint32> lines{};
-  for (size_t fid = 0; fid < surface.faces.size(); ++fid) {
-    if (surface.face_adjacencies[fid][0] == polyhedral_surface::invalid) {
-      lines.push_back(surface.faces[fid][0]);
-      lines.push_back(surface.faces[fid][1]);
-    }
-    if (surface.face_adjacencies[fid][1] == polyhedral_surface::invalid) {
-      lines.push_back(surface.faces[fid][1]);
-      lines.push_back(surface.faces[fid][2]);
-    }
-    if (surface.face_adjacencies[fid][2] == polyhedral_surface::invalid) {
-      lines.push_back(surface.faces[fid][2]);
-      lines.push_back(surface.faces[fid][0]);
-    }
-  }
-  surface_boundary.allocate_and_initialize(lines);
-
-  lines.clear();
-  for (const auto& [e, info] : surface.edges) {
-    if (info.oriented()) continue;
-    const auto e2 = surface.common_edge(info.face[0], info.face[1]);
-    lines.push_back(e2[0]);
-    lines.push_back(e2[1]);
-  }
-  surface_unoriented_edges.allocate_and_initialize(lines);
-
-  lines.clear();
-  for (const auto& [e, info] : surface.edges) {
-    if (info.oriented() || !surface.edges.contains({e[1], e[0]})) continue;
-    const auto e2 = surface.common_edge(info.face[0], info.face[1]);
-    lines.push_back(e2[0]);
-    lines.push_back(e2[1]);
-  }
-  surface_inconsistent_edges.allocate_and_initialize(lines);
 }
 
 void viewer::fit_view() {
@@ -356,62 +269,12 @@ void viewer::print_surface_info() {
        << " = " << setw(right_width) << surface.vertices.size() << '\n'
        << setw(left_width) << "faces"
        << " = " << setw(right_width) << surface.faces.size() << '\n'
-       << setw(left_width) << "consistent"
-       << " = " << setw(right_width) << surface.consistent() << '\n'
-       << setw(left_width) << "oriented"
-       << " = " << setw(right_width) << surface.oriented() << '\n'
-       << setw(left_width) << "boundary"
-       << " = " << setw(right_width) << surface.has_boundary() << '\n'
-       << setw(left_width) << "components"
-       << " = " << setw(right_width) << surface.component_count() << '\n'
        << endl;
 }
 
 void viewer::load_shader(const filesystem::path& path, const string& name) {
   shaders.load_shader(path);
   shaders.add_name(path, name);
-}
-
-void viewer::update_selection() {
-  decltype(surface.faces) faces{};
-  for (size_t i = 0; i < selected_faces.size(); ++i)
-    if (selected_faces[i]) faces.push_back(surface.faces[i]);
-  selection.allocate_and_initialize(faces);
-}
-
-void viewer::select_face(float x, float y) {
-  selected_faces.resize(surface.faces.size());
-  for (size_t i = 0; i < selected_faces.size(); ++i) selected_faces[i] = false;
-
-  if (const auto p = intersection(cam.primary_ray(x, y), surface)) {
-    selected_faces[p.f] = true;
-    update_selection();
-  }
-}
-
-void viewer::expand_selection() {
-  auto new_selected_faces = selected_faces;
-  for (size_t i = 0; i < selected_faces.size(); ++i) {
-    if (!selected_faces[i]) continue;
-    for (int j = 0; j < 3; ++j) {
-      if (surface.face_adjacencies[i][j] == scene::invalid) continue;
-      new_selected_faces[surface.face_adjacencies[i][j]] = true;
-    }
-  }
-  swap(new_selected_faces, selected_faces);
-  update_selection();
-}
-
-void viewer::select_component() {
-  // selected_faces.resize(surface.faces.size());
-  // for (size_t i = 0; i < surface.faces.size(); ++i)
-  //   selected_faces[i] = (surface.face_component[i] == group);
-  // update_selection();
-  // for (auto fid : surface.component_faces(group))
-
-  const auto r = surface.component_faces(group);
-  decltype(surface.faces) faces(ranges::begin(r), ranges::end(r));
-  selection.allocate_and_initialize(faces);
 }
 
 void viewer::sort_surface_faces_by_depth() {

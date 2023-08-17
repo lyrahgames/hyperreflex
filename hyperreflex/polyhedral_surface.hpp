@@ -1,6 +1,5 @@
 #pragma once
 #include <hyperreflex/aabb.hpp>
-#include <hyperreflex/discrete_quotient_map.hpp>
 #include <hyperreflex/opengl/opengl.hpp>
 #include <hyperreflex/stl_surface.hpp>
 #include <hyperreflex/utility.hpp>
@@ -19,106 +18,11 @@ struct polyhedral_surface {
   };
   using vertex_id = uint32;
 
-  template <typename type>
-  struct vertex_map : vector<type> {
-    using base = vector<type>;
-    using base::base;
-  };
-
-  struct edge : array<uint32, 2> {
-    struct info {
-      bool oriented() const noexcept { return face[1] == invalid; }
-      void add_face(uint32 f, uint16 l);
-      uint32 face[2]{invalid, invalid};
-      uint16 location[2];
-    };
-
-    struct hasher {
-      auto operator()(const edge& e) const noexcept -> size_t {
-        return (size_t(e[0]) << 7) ^ size_t(e[1]);
-      }
-    };
-  };
-
   struct face : array<vertex_id, 3> {};
   using face_id = uint32;
 
-  template <typename type>
-  struct face_map : vector<type> {
-    using base = vector<type>;
-    using base::base;
-  };
-
   vector<vertex> vertices{};
   vector<face> faces{};
-
-  void generate_edges();
-  void generate_face_adjacencies();
-
-  bool oriented() const noexcept;
-  bool has_boundary() const noexcept;
-  bool consistent() const noexcept;
-
-  auto position(vertex_id vid) const noexcept -> vec3;
-  auto normal(vertex_id vid) const noexcept -> vec3;
-  auto position(edge e, real t) const noexcept -> vec3;
-  auto position(face_id fid, real u, real v) const noexcept -> vec3;
-
-  auto shortest_face_path(uint32 src, uint32 dst) const -> vector<uint32>;
-  auto common_edge(uint32 fid1, uint32 fid2) const -> edge;
-  auto location(uint32 fid1, uint32 fid2) const -> uint32;
-
-  unordered_map<edge, edge::info, edge::hasher> edges{};
-  vector<array<uint32, 3>> face_adjacencies{};
-
-  auto face_adjacency(face_id fid, uint loc) const noexcept {
-    const auto f = face_adjacencies[fid][loc];
-    return pair{f >> 2, f & 0b11};
-  }
-
-  discrete_quotient_map<vertex_id, vertex_id> topological_vertex_map{};
-  void generate_topological_vertex_map();
-
-  auto topological_vertex_count() const noexcept {
-    return topological_vertex_map.image_size();
-  }
-  auto topological_vertex(vertex_id vid) const noexcept {
-    return topological_vertex_map(vid);
-  }
-  auto topological_vertex_vertex_ids(vertex_id vid) const noexcept {
-    return topological_vertex_map[vid];
-  }
-  auto topological_vertex_vertices(vertex_id vid) const noexcept {
-    return topological_vertex_vertex_ids(vid) |
-           views::transform([&](auto vid) { return vertices[vid]; });
-  }
-
-  using component_id = face_id;
-  discrete_quotient_map<face_id, component_id> face_component_map{};
-
-  void generate_face_component_map();
-  auto component_count() const noexcept {
-    return face_component_map.image_size();
-  }
-  auto component(face_id fid) const noexcept { return face_component_map(fid); }
-  auto component_face_ids(component_id component) const noexcept {
-    return face_component_map[component];
-  }
-  auto component_faces(component_id component) const noexcept {
-    return component_face_ids(component) |
-           views::transform([&](auto fid) { return faces[fid]; });
-  }
-
-  void generate_topological_structure() {
-    generate_topological_vertex_map();
-    cout << "topological vertex map generated" << endl;
-    generate_edges();
-    cout << "edges generated" << endl;
-    generate_face_adjacencies();
-    cout << "face adjacencies generated" << endl;
-    generate_face_component_map();
-    cout << "face component map generated" << endl;
-  }
 };
 
 auto polyhedral_surface_from(const stl_surface& data) -> polyhedral_surface;

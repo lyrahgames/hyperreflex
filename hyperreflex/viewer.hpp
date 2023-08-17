@@ -51,12 +51,6 @@ class viewer : viewer_context {
 
   void load_shader(const filesystem::path& path, const string& name);
 
-  void update_selection();
-  void select_face(float x, float y);
-  void expand_selection();
-
-  void select_component();
-
   void sort_surface_faces_by_depth();
 
  private:
@@ -91,19 +85,7 @@ class viewer : viewer_context {
   //
   float bounding_radius;
 
-  opengl::element_buffer surface_boundary{};
-  opengl::element_buffer surface_unoriented_edges{};
-  opengl::element_buffer surface_inconsistent_edges{};
-
   shader_manager shaders{};
-
-  opengl::element_buffer selection{};
-
-  vector<bool> selected_faces{};
-  uint32 group = 0;
-  bool orientation = false;
-
-  opengl::element_buffer edge_selection{};
 };
 
 }  // namespace hyperreflex
