@@ -13,7 +13,7 @@ viewer_context::viewer_context() {
   settings.stencilBits = 8;
   settings.antialiasingLevel = 4;
 
-  window.create(sf::VideoMode(600, 600), "Nanoreflex", sf::Style::Default,
+  window.create(sf::VideoMode(800, 450), "hyperreflex", sf::Style::Default,
                 settings);
   window.setVerticalSyncEnabled(true);
   window.setKeyRepeatEnabled(false);
@@ -40,9 +40,6 @@ viewer::viewer() : viewer_context() {
   glLineWidth(4.0f);
 
   surface.setup();
-  surface_curve_points.setup();
-  smooth_curve_points.setup();
-  critical_vertices.setup();
 }
 
 void viewer::resize() {
@@ -87,18 +84,8 @@ void viewer::process_events() {
         case sf::Keyboard::Num2:
           set_z_as_up();
           break;
-        case sf::Keyboard::Num0:
-          reset_surface_curve_points();
-          break;
         case sf::Keyboard::N:
           expand_selection();
-          break;
-        case sf::Keyboard::S:
-          // smooth_curve.smooth(surface);
-          // compute_surface_curve_points();
-          // curve.print(surface);
-          critical_vertices.vertices = surface.critical_points_from(curve);
-          critical_vertices.update();
           break;
         case sf::Keyboard::X:
           group = (group + 1) % surface.component_count();
@@ -111,15 +98,6 @@ void viewer::process_events() {
           break;
         case sf::Keyboard::Z:
           sort_surface_faces_by_depth();
-          break;
-        case sf::Keyboard::C:
-          close_surface_curve();
-          compute_surface_curve_points();
-          break;
-        case sf::Keyboard::R:
-          // smooth_curve.reflect(surface);
-          // smooth_curve = smooth_curve.reflect(surface);
-          // compute_surface_curve_points();
           break;
       }
     }
@@ -135,15 +113,10 @@ void viewer::process_events() {
 
     if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
       if (mouse_move != sf::Vector2i{}) {
-        add_surface_curve_points(mouse_pos.x, mouse_pos.y);
-        compute_surface_curve_points();
       }
     }
 
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
-      // smooth_curve.smooth(surface);
-      // smooth_curve = smooth_curve.reflect(surface);
-      // compute_surface_curve_points();
     }
   }
 }
@@ -230,17 +203,6 @@ void viewer::render() {
 
   // edge_selection.bind();
   // glDrawElements(GL_LINES, edge_selection.size(), GL_UNSIGNED_INT, 0);
-
-  // surface_curve_point_shader.bind();
-  shaders.names["initial"]->second.shader.bind();
-  surface_curve_points.render();
-  glDrawArrays(GL_LINE_STRIP, 0, surface_curve_points.vertices.size());
-  shaders.names["points"]->second.shader.bind();
-  smooth_curve_points.render();
-  glDrawArrays(GL_LINE_STRIP, 0, smooth_curve_points.vertices.size());
-
-  shaders.names["critical"]->second.shader.bind();
-  critical_vertices.render();
 }
 
 void viewer::run() {
@@ -450,154 +412,6 @@ void viewer::select_component() {
   const auto r = surface.component_faces(group);
   decltype(surface.faces) faces(ranges::begin(r), ranges::end(r));
   selection.allocate_and_initialize(faces);
-}
-
-void viewer::reset_surface_curve_points() {
-  curve.clear();
-  surface_curve_points.vertices.clear();
-  surface_curve_points.update();
-  smooth_curve_points.vertices.clear();
-  smooth_curve_points.update();
-  selection.allocate_and_initialize(nullptr, 0);
-}
-
-void viewer::add_surface_curve_points(float x, float y) {
-  const auto r = cam.primary_ray(x, y);
-  const auto p = intersection(r, surface);
-  if (!p) return;
-
-  // curve.add_face(p.f, surface);
-  // smooth_curve = curve;
-
-  surface.add_face(curve, p.f);
-  smooth_curve = curve;
-
-  assert(surface.valid(curve));
-
-  // Compute edge weights
-  // if (path.size() == 1) {
-  //   const auto fid1 = curve_faces.back();
-  //   const auto fid2 = path[0];
-  //   const auto e = surface.common_edge(fid1, fid2);
-  //   const auto v1 = surface.vertices[e[0]].position;
-  //   const auto v2 = surface.vertices[e[1]].position;
-  //   const auto x = surface.position(fid1, 1.0f / 3, 1.0f / 3);
-  //   const auto y = surface.position(fid2, p.u, p.v);
-  //   const auto w = edge_weight(v1, v2, x, y);
-  //   if (!remove_artifacts(fid2)) {
-  //     curve_faces.push_back(fid2);
-  //     curve_weights.push_back(w);
-  //   }
-  // } else if (path.size() == 2) {
-  //   const auto fid1 = curve_faces.back();
-  //   const auto fid2 = path[0];
-  //   const auto fid3 = path[1];
-  //   const auto edge1 = surface.common_edge(fid1, fid2);
-  //   const auto edge2 = surface.common_edge(fid2, fid3);
-  //   const auto o1 = surface.vertices[edge1[0]].position;
-  //   const auto o2 = surface.vertices[edge2[0]].position;
-  //   const auto e1 = normalize(surface.vertices[edge1[1]].position - o1);
-  //   const auto e2 = normalize(surface.vertices[edge2[1]].position - o2);
-  //   const auto e1l = length(surface.vertices[edge1[1]].position - o1);
-  //   const auto e2l = length(surface.vertices[edge2[1]].position - o2);
-
-  //   if (edge1[0] == edge2[0])
-  //     cout << "left rotation" << endl;
-  //   else
-  //     cout << "right rotation" << endl;
-
-  //   const auto sign = (edge1[0] == edge2[0]) ? 1.0f : -1.0f;
-
-  //   const auto e1x = dot(e1, e2);
-  //   const auto e1y = sign * length(e1 - e1x * e2);
-  //   const auto e2x = e1x;
-  //   const auto e2y = sign * length(e2 - e2x * e1);
-
-  //   const auto x = surface.position(fid1, curve_end.x, curve_end.y);
-  //   // const auto x = surface.position(fid1, 1.0f / 3, 1.0f / 3);
-  //   const auto x1 = x - o1;
-  //   const auto x1x = dot(x1, e1);
-  //   const auto x1y = length(x1 - x1x * e1);
-
-  //   const auto y = surface.position(fid3, p.u, p.v);
-  //   // const auto y = surface.position(fid3, 1.0f / 3, 1.0f / 3);
-  //   const auto y2 = y - o2;
-  //   const auto y2x = dot(y2, e2);
-  //   const auto y2y = length(y2 - y2x * e2);
-
-  //   const auto s = o2 - o1;
-  //   const auto s1x = dot(s, e1);
-  //   const auto s1y = length(s - s1x * e1);
-  //   const auto s2x = dot(s, e2);
-  //   const auto s2y = -length(s - s2x * e2);
-
-  //   const auto x2x = e1x * x1x - e1y * x1y - s2x;
-  //   const auto x2y = e1y * x1x + e1x * x1y - s2y;
-  //   const auto y1x = e2x * y2x - e2y * y2y + s1x;
-  //   const auto y1y = e2y * y2x + e2x * y2y + s1y;
-
-  //   const auto w1 = 1.0f / ((x1y) + (y1y));
-  //   const auto w1x = w1 * (y1y);
-  //   const auto w1y = w1 * (x1y);
-  //   const auto t1 = (w1x * x1x + w1y * y1x) / e1l;
-  //   const auto r1 = std::clamp(t1, 0.0f, 1.0f);
-
-  //   const auto w2 = 1.0f / ((x2y) + (y2y));
-  //   const auto w2x = w2 * (y2y);
-  //   const auto w2y = w2 * (x2y);
-  //   const auto t2 = (w2x * x2x + w2y * y2x) / e2l;
-  //   const auto r2 = std::clamp(t2, 0.0f, 1.0f);
-
-  //   if (!remove_artifacts(fid2)) {
-  //     curve_faces.push_back(fid2);
-  //     curve_weights.push_back(r1);
-  //   }
-  //   if (!remove_artifacts(fid3)) {
-  //     curve_faces.push_back(fid3);
-  //     curve_weights.push_back(r2);
-  //   }
-  // } else {
-  // for (auto x : path) {
-  //   if (remove_artifacts(x)) continue;
-  //   // curve_faces.push_back(x);
-  //   // curve_weights.push_back(0.5f);
-  //   curve.face_strip.push_back(x);
-  //   curve.edge_weights.push_back(0.5f);
-  // }
-  // }
-  // curve_end = {p.u, p.v};
-}
-
-void viewer::compute_surface_curve_points() {
-  // surface_curve_points.vertices = points_from(surface, curve);
-  // curve.generate_control_points(surface);
-  // surface_curve_points.vertices = curve.control_points;
-
-  surface_curve_points.vertices = surface.points_from(curve);
-  surface_curve_points.update();
-
-  // smooth_curve_points.vertices = points_from(surface, smooth_curve);
-  // smooth_curve.generate_control_points(surface);
-  // smooth_curve_points.vertices = smooth_curve.control_points;
-  // polyhedral_surface::surface_mesh_curve c;
-  // c.face_strip = smooth_curve.face_strip;
-  // c.edge_weights = smooth_curve.edge_weights;
-  smooth_curve_points.vertices = surface.points_from(curve);
-  smooth_curve_points.update();
-
-  vector<uint32> indices{};
-  for (auto fid : smooth_curve.face_strip) {
-    const auto& f = surface.faces[fid >> 2];
-    indices.push_back(f[0]);
-    indices.push_back(f[1]);
-    indices.push_back(f[2]);
-  }
-  selection.allocate_and_initialize(indices);
-}
-
-void viewer::close_surface_curve() {
-  // curve.close(surface);
-  // smooth_curve = curve;
 }
 
 void viewer::sort_surface_faces_by_depth() {

@@ -4,7 +4,6 @@
 #include <hyperreflex/points.hpp>
 #include <hyperreflex/polyhedral_surface.hpp>
 #include <hyperreflex/shader_manager.hpp>
-#include <hyperreflex/surface_mesh_curve.hpp>
 #include <hyperreflex/utility.hpp>
 
 namespace hyperreflex {
@@ -58,12 +57,6 @@ class viewer : viewer_context {
 
   void select_component();
 
-  void reset_surface_curve_points();
-  void add_surface_curve_points(float x, float y);
-  void compute_surface_curve_points();
-
-  void close_surface_curve();
-
   void sort_surface_faces_by_depth();
 
  private:
@@ -111,15 +104,6 @@ class viewer : viewer_context {
   bool orientation = false;
 
   opengl::element_buffer edge_selection{};
-
-  // surface_mesh_curve curve{};
-  // surface_mesh_curve smooth_curve{};
-
-  polyhedral_surface::surface_mesh_curve curve{};
-  polyhedral_surface::surface_mesh_curve smooth_curve{};
-  points surface_curve_points{};
-  points smooth_curve_points{};
-  points critical_vertices{};
 };
 
 }  // namespace hyperreflex

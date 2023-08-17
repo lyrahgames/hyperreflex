@@ -119,24 +119,6 @@ struct polyhedral_surface {
     generate_face_component_map();
     cout << "face component map generated" << endl;
   }
-
-  struct surface_mesh_curve {
-    constexpr auto size() const noexcept { return edge_weights.size(); }
-    constexpr void clear() {
-      face_strip.clear();
-      edge_weights.clear();
-    }
-    vector<uint32> face_strip{};
-    vector<float32> edge_weights{};
-  };
-  bool valid(const surface_mesh_curve& curve) const noexcept;
-  auto points_from(const surface_mesh_curve& curve) const -> vector<vec3>;
-  auto shortest_surface_mesh_curve(face_id src, face_id dst) const
-      -> surface_mesh_curve;
-  void add_face(surface_mesh_curve& curve, face_id fid) const;
-
-  auto critical_points_from(const surface_mesh_curve& curve) const
-      -> vector<vec3>;
 };
 
 auto polyhedral_surface_from(const stl_surface& data) -> polyhedral_surface;
