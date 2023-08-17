@@ -83,6 +83,7 @@ void viewer::process_events() {
           break;
         case sf::Mouse::Right:
           select_origin_vertex(event.mouseButton.x, event.mouseButton.y);
+          if (origin_vertex != polyhedral_surface::invalid) selecting = true;
           break;
       }
     } else if (event.type == sf::Event::MouseButtonReleased) {
@@ -90,6 +91,7 @@ void viewer::process_events() {
         case sf::Mouse::Right:
           select_destination_vertex(event.mouseButton.x, event.mouseButton.y);
           compute_dijkstra_path();
+          selecting = false;
           break;
       }
     } else if (event.type == sf::Event::KeyPressed) {
@@ -121,8 +123,12 @@ void viewer::process_events() {
         turn({-0.01 * mouse_move.x, 0.01 * mouse_move.y});
     }
 
-    if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
-      if (mouse_move != sf::Vector2i{}) {
+    // if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
+    // }
+    if (mouse_move != sf::Vector2i{}) {
+      if (selecting) {
+        select_destination_vertex(mouse_pos.x, mouse_pos.y);
+        compute_dijkstra_path();
       }
     }
 
@@ -179,6 +185,8 @@ void viewer::render() {
 
   // shaders.names["contours"]->second.shader.bind();
   // surface.render();
+
+  glDepthFunc(GL_ALWAYS);
 
   shaders.names["points"]->second.shader.bind();
   device_origin.render();
@@ -336,24 +344,27 @@ auto viewer::select_vertex(float x, float y) -> polyhedral_surface::vertex_id {
 }
 
 void viewer::select_origin_vertex(float x, float y) {
+  destination_vertex = polyhedral_surface::invalid;
   origin_vertex = select_vertex(x, y);
-  cout << "origin vid = " << origin_vertex << endl;
   if (origin_vertex == polyhedral_surface::invalid) return;
+  // cout << "origin vid = " << origin_vertex << endl;
   device_origin.vertices = {surface.vertices[origin_vertex].position};
   device_origin.update();
 }
 
 void viewer::select_destination_vertex(float x, float y) {
-  destination_vertex = select_vertex(x, y);
-  cout << "destination vid = " << destination_vertex << endl;
-  if (destination_vertex == polyhedral_surface::invalid) return;
+  const auto vid = select_vertex(x, y);
+  if (vid == polyhedral_surface::invalid) return;
+  destination_vertex = vid;
+  // cout << "destination vid = " << destination_vertex << endl;
   device_destination.vertices = {surface.vertices[destination_vertex].position};
   device_destination.update();
 }
 
 void viewer::compute_dijkstra_path() {
   if ((origin_vertex == polyhedral_surface::invalid) ||
-      (destination_vertex == polyhedral_surface::invalid))
+      (destination_vertex == polyhedral_surface::invalid) ||
+      (origin_vertex == destination_vertex))
     return;
 
   using namespace geometrycentral;

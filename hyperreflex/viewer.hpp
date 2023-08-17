@@ -96,9 +96,12 @@ class viewer : viewer_context {
   polyhedral_surface::vertex_id origin_vertex = polyhedral_surface::invalid;
   polyhedral_surface::vertex_id destination_vertex = polyhedral_surface::invalid;
 
+
+  bool selecting = false;
+  //
   points device_origin;
   points device_destination;
-
+  //
   points device_line;
 };
 
