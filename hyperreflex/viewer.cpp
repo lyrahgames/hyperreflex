@@ -1,6 +1,10 @@
 #include <hyperreflex/viewer.hpp>
 //
 #include <hyperreflex/math.hpp>
+//
+#include <geometrycentral/surface/flip_geodesics.h>
+#include <geometrycentral/surface/manifold_surface_mesh.h>
+#include <geometrycentral/surface/vertex_position_geometry.h>
 
 namespace hyperreflex {
 
@@ -40,6 +44,11 @@ viewer::viewer() : viewer_context() {
   glLineWidth(4.0f);
 
   surface.setup();
+
+  device_origin.setup();
+  device_destination.setup();
+
+  device_line.setup();
 }
 
 void viewer::resize() {
@@ -72,11 +81,24 @@ void viewer::process_events() {
         case sf::Mouse::Middle:
           look_at(event.mouseButton.x, event.mouseButton.y);
           break;
+        case sf::Mouse::Right:
+          select_origin_vertex(event.mouseButton.x, event.mouseButton.y);
+          break;
+      }
+    } else if (event.type == sf::Event::MouseButtonReleased) {
+      switch (event.mouseButton.button) {
+        case sf::Mouse::Right:
+          select_destination_vertex(event.mouseButton.x, event.mouseButton.y);
+          compute_dijkstra_path();
+          break;
       }
     } else if (event.type == sf::Event::KeyPressed) {
       switch (event.key.code) {
         case sf::Keyboard::Escape:
           running = false;
+          break;
+        case sf::Keyboard::Space:
+          compute_dijkstra_path();
           break;
         case sf::Keyboard::Num1:
           set_y_as_up();
@@ -157,6 +179,13 @@ void viewer::render() {
 
   // shaders.names["contours"]->second.shader.bind();
   // surface.render();
+
+  shaders.names["points"]->second.shader.bind();
+  device_origin.render();
+  device_destination.render();
+
+  device_line.render();
+  glDrawArrays(GL_LINE_STRIP, 0, device_line.vertices.size());
 }
 
 void viewer::run() {
@@ -290,6 +319,91 @@ void viewer::sort_surface_faces_by_depth() {
     return d1 > d2;
   });
   surface.device_faces.allocate_and_initialize(faces);
+}
+
+auto viewer::select_vertex(float x, float y) -> polyhedral_surface::vertex_id {
+  const auto r = cam.primary_ray(x, y);
+  const auto p = intersection(r, surface);
+  if (!p) return polyhedral_surface::invalid;
+
+  const auto& f = surface.faces[p.f];
+  const auto w = real(1) - p.u - p.v;
+
+  // const auto position = surface.vertices[f[0]].position * w +
+  //                       surface.vertices[f[1]].position * u +
+  //                       surface.vertices[f[2]].position * v;
+  return f[0];
+}
+
+void viewer::select_origin_vertex(float x, float y) {
+  origin_vertex = select_vertex(x, y);
+  cout << "origin vid = " << origin_vertex << endl;
+  if (origin_vertex == polyhedral_surface::invalid) return;
+  device_origin.vertices = {surface.vertices[origin_vertex].position};
+  device_origin.update();
+}
+
+void viewer::select_destination_vertex(float x, float y) {
+  destination_vertex = select_vertex(x, y);
+  cout << "destination vid = " << destination_vertex << endl;
+  if (destination_vertex == polyhedral_surface::invalid) return;
+  device_destination.vertices = {surface.vertices[destination_vertex].position};
+  device_destination.update();
+}
+
+void viewer::compute_dijkstra_path() {
+  if ((origin_vertex == polyhedral_surface::invalid) ||
+      (destination_vertex == polyhedral_surface::invalid))
+    return;
+
+  using namespace geometrycentral;
+  using namespace surface;
+
+  // Generate polygon data for constructors.
+  //
+  vector<vector<size_t>> polygons(surface.faces.size());
+  for (size_t i = 0; const auto& f : surface.faces) {
+    polygons[i].resize(3);
+    for (size_t j = 0; j < 3; ++j) polygons[i][j] = f[j];
+    ++i;
+  }
+  //
+  ManifoldSurfaceMesh mesh{polygons};
+
+  // Generate vertex data for constructors.
+  //
+  VertexData<Vector3> vertices(mesh);
+  for (size_t i = 0; i < surface.vertices.size(); ++i) {
+    vertices[i].x = surface.vertices[i].position.x;
+    vertices[i].y = surface.vertices[i].position.y;
+    vertices[i].z = surface.vertices[i].position.z;
+  }
+  //
+  VertexPositionGeometry geometry{mesh, vertices};
+
+  // FlipEdgeNetwork network(mesh, geometry, {});
+  // network.supportRewinding = true;
+  // network.posGeom = &geometry;
+
+  // const auto init_path =
+  //     shortestEdgePath(geometry, origin_vertex, destination_vertex);
+  // network.reinitializePath({init_path});
+  // network.iterativeShorten();
+  // const auto path = network.getPathPolyline3D().front();
+
+  // network.rewind();
+
+  const auto network = FlipEdgeNetwork::constructFromDijkstraPath(
+      mesh, geometry, Vertex{&mesh, origin_vertex},
+      Vertex{&mesh, destination_vertex});
+  network->iterativeShorten();
+  network->posGeom = &geometry;
+  vector<Vector3> path = network->getPathPolyline3D().front();
+
+  device_line.vertices.clear();
+  for (const auto& v : path)
+    device_line.vertices.push_back(vec3{real(v.x), real(v.y), real(v.z)});
+  device_line.update();
 }
 
 }  // namespace hyperreflex

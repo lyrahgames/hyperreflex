@@ -4,6 +4,8 @@ import libs += glbinding%lib{glbinding}
 import libs += glm%lib{glm}
 import libs += assimp%lib{assimp}
 
+import libs += libgeometrycentral%lib{geometrycentral}
+
 exe{hyperreflex}: {hxx ixx txx cxx}{**} $libs
 
 cxx.poptions =+ "-I$out_root" "-I$src_root"
