@@ -6,8 +6,6 @@
 #include <hyperreflex/shader_manager.hpp>
 #include <hyperreflex/utility.hpp>
 //
-#include <geometrycentral/surface/flip_geodesics.h>
-#include <geometrycentral/surface/halfedge_element_types.h>
 #include <geometrycentral/surface/manifold_surface_mesh.h>
 #include <geometrycentral/surface/vertex_position_geometry.h>
 
@@ -105,20 +103,16 @@ class viewer : viewer_context {
   unique_ptr<geometrycentral::surface::ManifoldSurfaceMesh> mesh{};
   unique_ptr<geometrycentral::surface::VertexPositionGeometry> geometry{};
 
+  // Drawing lines.
+  //
   polyhedral_surface::vertex_id origin_vertex =  //
       polyhedral_surface::invalid;
   polyhedral_surface::vertex_id destination_vertex =  //
       polyhedral_surface::invalid;
-
+  //
   bool selecting = false;
-  //
-  points device_origin;
-  points device_destination;
-  //
   points device_line;
-  //
   vector<polyhedral_surface::vertex_id> line_vids{};
-  vector<geometrycentral::surface::Halfedge> edge_path{};
 };
 
 }  // namespace hyperreflex

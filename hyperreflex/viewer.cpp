@@ -1,6 +1,9 @@
 #include <hyperreflex/viewer.hpp>
 //
 #include <hyperreflex/math.hpp>
+//
+#include <geometrycentral/surface/flip_geodesics.h>
+#include <geometrycentral/surface/halfedge_element_types.h>
 
 namespace hyperreflex {
 
@@ -40,10 +43,6 @@ viewer::viewer() : viewer_context() {
   glLineWidth(4.0f);
 
   surface.setup();
-
-  device_origin.setup();
-  device_destination.setup();
-
   device_line.setup();
 }
 
@@ -181,11 +180,7 @@ void viewer::render() {
   // surface.render();
 
   glDepthFunc(GL_ALWAYS);
-
   shaders.names["points"]->second.shader.bind();
-  device_origin.render();
-  device_destination.render();
-
   device_line.render();
   glDrawArrays(GL_LINE_STRIP, 0, device_line.vertices.size());
 }
@@ -341,13 +336,10 @@ auto viewer::select_vertex(float x, float y) -> polyhedral_surface::vertex_id {
 void viewer::select_origin_vertex(float x, float y) {
   destination_vertex = polyhedral_surface::invalid;
   line_vids.clear();
-  edge_path.clear();
   origin_vertex = select_vertex(x, y);
   if (origin_vertex == polyhedral_surface::invalid) return;
   // cout << "origin vid = " << origin_vertex << endl;
   line_vids.push_back(origin_vertex);
-  device_origin.vertices = {surface.vertices[origin_vertex].position};
-  device_origin.update();
 }
 
 void viewer::select_destination_vertex(float x, float y) {
@@ -355,9 +347,6 @@ void viewer::select_destination_vertex(float x, float y) {
   if (vid == polyhedral_surface::invalid) return;
   destination_vertex = vid;
   // cout << "destination vid = " << destination_vertex << endl;
-  device_destination.vertices = {surface.vertices[destination_vertex].position};
-  device_destination.update();
-
   // compute_dijkstra_path();
   update_line();
 }
@@ -395,18 +384,6 @@ void viewer::compute_dijkstra_path() {
       (origin_vertex == destination_vertex))
     return;
 
-  // FlipEdgeNetwork network(mesh, geometry, {});
-  // network.supportRewinding = true;
-  // network.posGeom = &geometry;
-
-  // const auto init_path =
-  //     shortestEdgePath(geometry, origin_vertex, destination_vertex);
-  // network.reinitializePath({init_path});
-  // network.iterativeShorten();
-  // const auto path = network.getPathPolyline3D().front();
-
-  // network.rewind();
-
   using namespace geometrycentral;
   using namespace surface;
 
@@ -431,69 +408,63 @@ void viewer::update_line() {
   using namespace geometrycentral;
   using namespace surface;
 
+  // Get the shortest edge path by using
+  // Dijkstra's Algorithm by Geometry Central.
+  //
   const auto network = FlipEdgeNetwork::constructFromDijkstraPath(
       *mesh, *geometry, Vertex{mesh.get(), origin_vertex},
       Vertex{mesh.get(), destination_vertex});
   network->posGeom = geometry.get();
-
   const auto paths = network->getPathPolyline();
 
+  // Check the path for consistency.
+  //
   assert(paths.size() == 1);
   const auto& path = paths[0];
   assert(path.front().vertex.getIndex() == origin_vertex);
   assert(path.back().vertex.getIndex() == destination_vertex);
 
-  for (size_t i = 1; i < path.size(); ++i) {
+  // Store this path at the end of the current line.
+  //
+  for (size_t i = 1; i < path.size(); ++i)
     line_vids.push_back(path[i].vertex.getIndex());
-  }
-
-  for (size_t i = 0; i < path.size() - 1; ++i) {
-    // cout << path[i].vertex.getIndex() << " -> "
-    //      << path[i + 1].vertex.getIndex();
-
-    auto he = path[i].vertex.halfedge();
-
-    // cout << "\t (" << he.tipVertex().getIndex() << ", "
-    //      << he.tailVertex().getIndex() << ")" << endl;
-
-    while (he.tipVertex() != path[i + 1].vertex) he = he.nextOutgoingNeighbor();
-
-    // cout << "\t (" << he.tipVertex().getIndex() << ", "
-    //      << he.tailVertex().getIndex() << ")" << endl;
-
-    edge_path.push_back(he);
-
-    // cout << line_vids.back() << "\t" << edge_path.back().vertex().getIndex()
-    //      << "\t" << edge_path.back().tipVertex().getIndex() << "\t"
-    //      << edge_path.back().tailVertex().getIndex() << endl;
-  }
   origin_vertex = destination_vertex;
 
-  // const auto paths = network->getPathPolyline();
-  // assert(paths.size() == 1);
-  // const auto& edge_points = paths[0];
-  // for (auto& e : edge_points) edge_path.push_back(e.edge.halfedge());
-
-  // Render the points
+  // Update the structure for line rendering.
   //
   device_line.vertices.clear();
-  // for (auto vid : line_vids)
-  //   device_line.vertices.push_back(surface.vertices[vid].position);
-  for (auto& e : edge_path) {
-    const auto i = e.vertex().getIndex();
-    // cout << i << endl;
-    device_line.vertices.push_back(surface.vertices[i].position);
-  }
+  for (auto vid : line_vids)
+    device_line.vertices.push_back(surface.vertices[vid].position);
   device_line.update();
 }
 
 void viewer::shorten_line() {
-  if (edge_path.empty()) return;
+  if (line_vids.size() <= 1) return;
 
   using namespace geometrycentral;
   using namespace surface;
 
-  FlipEdgeNetwork network(*mesh, *geometry, {edge_path});
+  // Construct path of halfedges from vertex indices.
+  // We have to do this anyway as the surface point data
+  // structure does not provide correctly oriented halfedges.
+  //
+  vector<Halfedge> edges{};
+  for (size_t i = 1; i < line_vids.size(); ++i) {
+    Vertex p(mesh.get(), line_vids[i - 1]);
+    Vertex q(mesh.get(), line_vids[i]);
+
+    auto he = q.halfedge();
+    while (he.tipVertex() != p) he = he.nextOutgoingNeighbor();
+    // The halfedge must point to the previous point.
+    // Otherwise, edges do not count as path for FlipEdgeNetwork construction.
+    edges.push_back(he.twin());
+
+    // cout << line_vids[i - 1] << " -> " << line_vids[i] << '\t'
+    //      << he.tipVertex().getIndex() << "," << he.tailVertex().getIndex()
+    //      << endl;
+  }
+
+  FlipEdgeNetwork network(*mesh, *geometry, {edges});
   network.iterativeShorten();
   network.posGeom = geometry.get();
   vector<Vector3> path = network.getPathPolyline3D().front();
