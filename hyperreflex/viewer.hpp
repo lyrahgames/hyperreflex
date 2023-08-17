@@ -5,6 +5,11 @@
 #include <hyperreflex/polyhedral_surface.hpp>
 #include <hyperreflex/shader_manager.hpp>
 #include <hyperreflex/utility.hpp>
+//
+#include <geometrycentral/surface/flip_geodesics.h>
+#include <geometrycentral/surface/halfedge_element_types.h>
+#include <geometrycentral/surface/manifold_surface_mesh.h>
+#include <geometrycentral/surface/vertex_position_geometry.h>
 
 namespace hyperreflex {
 
@@ -57,8 +62,11 @@ class viewer : viewer_context {
   void select_origin_vertex(float x, float y);
   void select_destination_vertex(float x, float y);
 
+  void compute_topology_and_geometry();
+
   void compute_dijkstra_path();
   void update_line();
+  void shorten_line();
 
  private:
   sf::Vector2i mouse_pos{};
@@ -94,6 +102,9 @@ class viewer : viewer_context {
 
   shader_manager shaders{};
 
+  unique_ptr<geometrycentral::surface::ManifoldSurfaceMesh> mesh{};
+  unique_ptr<geometrycentral::surface::VertexPositionGeometry> geometry{};
+
   polyhedral_surface::vertex_id origin_vertex =  //
       polyhedral_surface::invalid;
   polyhedral_surface::vertex_id destination_vertex =  //
@@ -107,6 +118,7 @@ class viewer : viewer_context {
   points device_line;
   //
   vector<polyhedral_surface::vertex_id> line_vids{};
+  vector<geometrycentral::surface::Halfedge> edge_path{};
 };
 
 }  // namespace hyperreflex
