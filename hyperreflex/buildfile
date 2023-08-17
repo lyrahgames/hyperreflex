@@ -1,0 +1,12 @@
+libs =
+import libs += sfml-graphics%lib{sfml-graphics}
+import libs += glbinding%lib{glbinding}
+import libs += glm%lib{glm}
+import libs += assimp%lib{assimp}
+
+exe{hyperreflex}: {hxx ixx txx cxx}{**} $libs
+
+cxx.poptions =+ "-I$out_root" "-I$src_root"
+
+if ($cxx.target.system != 'win32-msvc')
+  cxx.libs += -pthread
