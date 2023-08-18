@@ -478,9 +478,12 @@ void viewer::shorten_line() {
     //      << endl;
   }
 
-  FlipEdgeNetwork network(*mesh, *geometry, {edges});
+  auto g = geometry.get();
+  if (displacing) g = displaced_geometry.get();
+
+  FlipEdgeNetwork network(*mesh, *g, {edges});
   network.iterativeShorten();
-  network.posGeom = geometry.get();
+  network.posGeom = g;
   vector<Vector3> path = network.getPathPolyline3D().front();
 
   device_line.vertices.clear();
@@ -546,10 +549,27 @@ void viewer::add_normal_displacement() {
     ++i;
   }
   surface.device_vertices.allocate_and_initialize(vertices);
+
+  // Generate vertex data for constructors.
+  //
+  using namespace geometrycentral;
+  using namespace surface;
+  VertexData<Vector3> geometry_vertices(*mesh);
+  for (size_t i = 0; i < vertices.size(); ++i) {
+    geometry_vertices[i].x = vertices[i].position.x;
+    geometry_vertices[i].y = vertices[i].position.y;
+    geometry_vertices[i].z = vertices[i].position.z;
+  }
+  //
+  displaced_geometry =
+      make_unique<VertexPositionGeometry>(*mesh, geometry_vertices);
+
+  displacing = true;
 }
 
 void viewer::remove_normal_displacement() {
   surface.device_vertices.allocate_and_initialize(surface.vertices);
+  displacing = false;
 }
 
 }  // namespace hyperreflex

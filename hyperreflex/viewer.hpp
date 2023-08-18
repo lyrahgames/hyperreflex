@@ -130,6 +130,10 @@ class viewer : viewer_context {
   Eigen::VectorXd heat;
   opengl::vertex_buffer device_heat{};
   vector<float> potential;
+  //
+  bool displacing = false;
+  unique_ptr<geometrycentral::surface::VertexPositionGeometry>
+      displaced_geometry{};
 };
 
 }  // namespace hyperreflex
