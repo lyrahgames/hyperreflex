@@ -9,3 +9,7 @@ summary: hyperreflex project repository
 :
 role: prerequisite
 location: https://github.com/build2-packaging/geometry-central.git#master
+
+:
+role: prerequisite
+location: https://github.com/lyrahgames/build2-libigl.git#master

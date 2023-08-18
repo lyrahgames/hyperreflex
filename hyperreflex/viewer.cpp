@@ -4,6 +4,8 @@
 //
 #include <geometrycentral/surface/flip_geodesics.h>
 #include <geometrycentral/surface/halfedge_element_types.h>
+//
+#include <igl/avg_edge_length.h>
 
 namespace hyperreflex {
 
@@ -43,6 +45,10 @@ viewer::viewer() : viewer_context() {
   glLineWidth(4.0f);
 
   surface.setup();
+  device_heat.bind();
+  glEnableVertexAttribArray(2);
+  glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(float), (void*)0);
+
   device_line.setup();
 }
 
@@ -271,6 +277,7 @@ void viewer::handle_surface_load_task() {
   fit_view();
   print_surface_info();
   compute_topology_and_geometry();
+  compute_heat_data();
 }
 
 void viewer::fit_view() {
@@ -349,6 +356,7 @@ void viewer::select_destination_vertex(float x, float y) {
   // cout << "destination vid = " << destination_vertex << endl;
   // compute_dijkstra_path();
   update_line();
+  update_heat();
 }
 
 void viewer::compute_topology_and_geometry() {
@@ -473,6 +481,52 @@ void viewer::shorten_line() {
   for (const auto& v : path)
     device_line.vertices.push_back(vec3{real(v.x), real(v.y), real(v.z)});
   device_line.update();
+}
+
+void viewer::compute_heat_data() {
+  // Construct vertex matrix.
+  //
+  surface_vertex_matrix.resize(surface.vertices.size(), 3);
+  for (size_t i = 0; i < surface.vertices.size(); ++i)
+    for (size_t j = 0; j < 3; ++j)
+      surface_vertex_matrix(i, j) = surface.vertices[i].position[j];
+
+  // Construct face matrix.
+  //
+  surface_face_matrix.resize(surface.faces.size(), 3);
+  for (size_t i = 0; i < surface.faces.size(); ++i)
+    for (size_t j = 0; j < 3; ++j)
+      surface_face_matrix(i, j) = surface.faces[i][j];
+
+  // Construct heat data.
+  //
+  auto t =
+      pow(igl::avg_edge_length(surface_vertex_matrix, surface_face_matrix), 2);
+  if (!igl::heat_geodesics_precompute(surface_vertex_matrix,
+                                      surface_face_matrix, t, heat_data)) {
+    cerr << "ERROR: Precomputation of heat data failed." << endl;
+    exit(1);
+  }
+
+  vector<float> tmp(surface.vertices.size(), 0);
+  device_heat.allocate_and_initialize(tmp);
+}
+
+void viewer::update_heat() {
+  heat = Eigen::VectorXd::Zero(surface_vertex_matrix.rows());
+  Eigen::VectorXi gamma(line_vids.size());
+  for (size_t i = 0; i < line_vids.size(); ++i) gamma[i] = line_vids[i];
+
+  igl::heat_geodesics_solve(heat_data, gamma, heat);
+
+  vector<float> tmp(heat.size());
+  double max_heat = 0;
+  for (size_t i = 0; i < heat.size(); ++i)
+    max_heat = std::max(max_heat, heat[i]);
+  for (size_t i = 0; i < tmp.size(); ++i) tmp[i] = heat[i] / max_heat;
+  const auto modifier = [](auto x) { return x * x; };
+  for (size_t i = 0; i < tmp.size(); ++i) tmp[i] = modifier(tmp[i]);
+  device_heat.allocate_and_initialize(tmp);
 }
 
 }  // namespace hyperreflex

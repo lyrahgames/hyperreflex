@@ -14,7 +14,7 @@ int main(int argc, char* argv[]) {
   viewer.load_surface(argv[1]);
 
   viewer.load_shader(path / "shader/default", "default");
-  viewer.load_shader(path / "shader/wireframe", "flat");
+  viewer.load_shader(path / "shader/heat", "flat");
   viewer.load_shader(path / "shader/points", "points");
   viewer.load_shader(path / "shader/initial", "initial");
   viewer.load_shader(path / "shader/critical", "critical");

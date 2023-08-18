@@ -8,6 +8,8 @@
 //
 #include <geometrycentral/surface/manifold_surface_mesh.h>
 #include <geometrycentral/surface/vertex_position_geometry.h>
+//
+#include <igl/heat_geodesics.h>
 
 namespace hyperreflex {
 
@@ -66,6 +68,9 @@ class viewer : viewer_context {
   void update_line();
   void shorten_line();
 
+  void compute_heat_data();
+  void update_heat();
+
  private:
   sf::Vector2i mouse_pos{};
   bool running = false;
@@ -113,6 +118,14 @@ class viewer : viewer_context {
   bool selecting = false;
   points device_line;
   vector<polyhedral_surface::vertex_id> line_vids{};
+
+  // Heat Geodsics from libigl
+  //
+  Eigen::MatrixXd surface_vertex_matrix;
+  Eigen::MatrixXi surface_face_matrix;
+  igl::HeatGeodesicsData<double> heat_data;
+  Eigen::VectorXd heat;
+  opengl::vertex_buffer device_heat{};
 };
 
 }  // namespace hyperreflex
