@@ -6,6 +6,7 @@
 #include <hyperreflex/shader_manager.hpp>
 #include <hyperreflex/utility.hpp>
 //
+#include <geometrycentral/surface/edge_length_geometry.h>
 #include <geometrycentral/surface/manifold_surface_mesh.h>
 #include <geometrycentral/surface/vertex_position_geometry.h>
 //
@@ -74,6 +75,8 @@ class viewer : viewer_context {
   void add_normal_displacement();
   void remove_normal_displacement();
 
+  void smooth_line();
+
  private:
   sf::Vector2i mouse_pos{};
   bool running = false;
@@ -134,6 +137,8 @@ class viewer : viewer_context {
   bool displacing = false;
   unique_ptr<geometrycentral::surface::VertexPositionGeometry>
       displaced_geometry{};
+
+  unique_ptr<geometrycentral::surface::EdgeLengthGeometry> lifted_geometry{};
 };
 
 }  // namespace hyperreflex

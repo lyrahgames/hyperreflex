@@ -100,7 +100,8 @@ void viewer::process_events() {
           running = false;
           break;
         case sf::Keyboard::Space:
-          shorten_line();
+          // shorten_line();
+          smooth_line();
           break;
         case sf::Keyboard::Num9:
           add_normal_displacement();
@@ -535,11 +536,27 @@ void viewer::update_heat() {
   for (size_t i = 0; i < potential.size(); ++i)
     potential[i] = heat[i] / max_heat;
   const auto modifier = [](auto x) {
-    return (x <= 1e-4f) ? 0 : exp(-0.1f / x);
+    return (x <= 1e-4f) ? 0 : exp(-0.2f / x);
   };
   for (size_t i = 0; i < potential.size(); ++i)
     potential[i] = modifier(potential[i]);
   device_heat.allocate_and_initialize(potential);
+
+  // Generate vertex data for constructors.
+  //
+  using namespace geometrycentral;
+  using namespace surface;
+  EdgeData<double> edge_lengths(*mesh);
+  for (auto e : mesh->edges()) {
+    const auto vid1 = e.halfedge().tipVertex().getIndex();
+    const auto vid2 = e.halfedge().tailVertex().getIndex();
+    const auto squared = [](auto x) { return x * x; };
+    edge_lengths[e] = sqrt(length2(surface.vertices[vid1].position -
+                                   surface.vertices[vid2].position) +
+                           squared(potential[vid1] - potential[vid2]));
+  }
+  //
+  lifted_geometry = make_unique<EdgeLengthGeometry>(*mesh, edge_lengths);
 }
 
 void viewer::add_normal_displacement() {
@@ -570,6 +587,43 @@ void viewer::add_normal_displacement() {
 void viewer::remove_normal_displacement() {
   surface.device_vertices.allocate_and_initialize(surface.vertices);
   displacing = false;
+}
+
+void viewer::smooth_line() {
+  if (line_vids.size() <= 1) return;
+
+  using namespace geometrycentral;
+  using namespace surface;
+
+  // Construct path of halfedges from vertex indices.
+  // We have to do this anyway as the surface point data
+  // structure does not provide correctly oriented halfedges.
+  //
+  vector<Halfedge> edges{};
+  for (size_t i = 1; i < line_vids.size(); ++i) {
+    Vertex p(mesh.get(), line_vids[i - 1]);
+    Vertex q(mesh.get(), line_vids[i]);
+
+    auto he = q.halfedge();
+    while (he.tipVertex() != p) he = he.nextOutgoingNeighbor();
+    // The halfedge must point to the previous point.
+    // Otherwise, edges do not count as path for FlipEdgeNetwork construction.
+    edges.push_back(he.twin());
+
+    // cout << line_vids[i - 1] << " -> " << line_vids[i] << '\t'
+    //      << he.tipVertex().getIndex() << "," << he.tailVertex().getIndex()
+    //      << endl;
+  }
+
+  FlipEdgeNetwork network(*mesh, *lifted_geometry, {edges});
+  network.iterativeShorten();
+  network.posGeom = geometry.get();
+  vector<Vector3> path = network.getPathPolyline3D().front();
+
+  device_line.vertices.clear();
+  for (const auto& v : path)
+    device_line.vertices.push_back(vec3{real(v.x), real(v.y), real(v.z)});
+  device_line.update();
 }
 
 }  // namespace hyperreflex
