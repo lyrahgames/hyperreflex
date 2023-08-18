@@ -102,6 +102,12 @@ void viewer::process_events() {
         case sf::Keyboard::Space:
           shorten_line();
           break;
+        case sf::Keyboard::Num9:
+          add_normal_displacement();
+          break;
+        case sf::Keyboard::Num0:
+          remove_normal_displacement();
+          break;
         case sf::Keyboard::Num1:
           set_y_as_up();
           break;
@@ -508,8 +514,8 @@ void viewer::compute_heat_data() {
     exit(1);
   }
 
-  vector<float> tmp(surface.vertices.size(), 0);
-  device_heat.allocate_and_initialize(tmp);
+  potential.assign(surface.vertices.size(), 0);
+  device_heat.allocate_and_initialize(potential);
 }
 
 void viewer::update_heat() {
@@ -519,14 +525,31 @@ void viewer::update_heat() {
 
   igl::heat_geodesics_solve(heat_data, gamma, heat);
 
-  vector<float> tmp(heat.size());
+  potential.assign(heat.size(), 0);
   double max_heat = 0;
   for (size_t i = 0; i < heat.size(); ++i)
     max_heat = std::max(max_heat, heat[i]);
-  for (size_t i = 0; i < tmp.size(); ++i) tmp[i] = heat[i] / max_heat;
-  const auto modifier = [](auto x) { return x * x; };
-  for (size_t i = 0; i < tmp.size(); ++i) tmp[i] = modifier(tmp[i]);
-  device_heat.allocate_and_initialize(tmp);
+  for (size_t i = 0; i < potential.size(); ++i)
+    potential[i] = heat[i] / max_heat;
+  const auto modifier = [](auto x) {
+    return (x <= 1e-4f) ? 0 : exp(-0.1f / x);
+  };
+  for (size_t i = 0; i < potential.size(); ++i)
+    potential[i] = modifier(potential[i]);
+  device_heat.allocate_and_initialize(potential);
+}
+
+void viewer::add_normal_displacement() {
+  auto vertices = surface.vertices;
+  for (size_t i = 0; auto& v : vertices) {
+    v.position += 0.5f * bounding_radius * potential[i] * v.normal;
+    ++i;
+  }
+  surface.device_vertices.allocate_and_initialize(vertices);
+}
+
+void viewer::remove_normal_displacement() {
+  surface.device_vertices.allocate_and_initialize(surface.vertices);
 }
 
 }  // namespace hyperreflex

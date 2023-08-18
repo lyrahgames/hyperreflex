@@ -71,6 +71,9 @@ class viewer : viewer_context {
   void compute_heat_data();
   void update_heat();
 
+  void add_normal_displacement();
+  void remove_normal_displacement();
+
  private:
   sf::Vector2i mouse_pos{};
   bool running = false;
@@ -126,6 +129,7 @@ class viewer : viewer_context {
   igl::HeatGeodesicsData<double> heat_data;
   Eigen::VectorXd heat;
   opengl::vertex_buffer device_heat{};
+  vector<float> potential;
 };
 
 }  // namespace hyperreflex
