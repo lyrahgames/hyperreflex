@@ -139,6 +139,8 @@ class viewer : viewer_context {
       displaced_geometry{};
 
   unique_ptr<geometrycentral::surface::EdgeLengthGeometry> lifted_geometry{};
+
+  float tolerance = 10.0f;
 };
 
 }  // namespace hyperreflex

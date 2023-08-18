@@ -118,6 +118,16 @@ void viewer::process_events() {
         case sf::Keyboard::Z:
           sort_surface_faces_by_depth();
           break;
+        case sf::Keyboard::Up:
+          tolerance *= 1.1f;
+          update_heat();
+          smooth_line();
+          break;
+        case sf::Keyboard::Down:
+          tolerance *= 0.9f;
+          update_heat();
+          smooth_line();
+          break;
       }
     }
   }
@@ -535,8 +545,8 @@ void viewer::update_heat() {
     max_heat = std::max(max_heat, heat[i]);
   for (size_t i = 0; i < potential.size(); ++i)
     potential[i] = heat[i] / max_heat;
-  const auto modifier = [](auto x) {
-    return (x <= 1e-4f) ? 0 : exp(-0.2f / x);
+  const auto modifier = [this](auto x) {
+    return (x <= 1e-4f) ? 0 : exp(-1.0f / tolerance / x);
   };
   for (size_t i = 0; i < potential.size(); ++i)
     potential[i] = modifier(potential[i]);
