@@ -18,7 +18,7 @@ viewer_context::viewer_context() {
   settings.stencilBits = 8;
   settings.antialiasingLevel = 4;
 
-  window.create(sf::VideoMode(800, 450), "hyperreflex", sf::Style::Default,
+  window.create(sf::VideoMode(800, 800), "hyperreflex", sf::Style::Default,
                 settings);
   window.setVerticalSyncEnabled(true);
   window.setKeyRepeatEnabled(false);
@@ -49,6 +49,7 @@ viewer::viewer() : viewer_context() {
   glEnableVertexAttribArray(2);
   glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(float), (void*)0);
 
+  device_initial_line.setup();
   device_line.setup();
 }
 
@@ -128,6 +129,16 @@ void viewer::process_events() {
           update_heat();
           smooth_line();
           break;
+        case sf::Keyboard::G:
+          shorten_line();
+          break;
+        case sf::Keyboard::H:
+          lighting = !lighting;
+          shaders.names["flat"]->second.shader.bind().set("lighting", lighting);
+          break;
+        case sf::Keyboard::S:
+          smooth_line_drawing = !smooth_line_drawing;
+          break;
       }
     }
   }
@@ -203,9 +214,17 @@ void viewer::render() {
   // surface.render();
 
   glDepthFunc(GL_ALWAYS);
-  shaders.names["points"]->second.shader.bind();
-  device_line.render();
-  glDrawArrays(GL_LINE_STRIP, 0, device_line.vertices.size());
+
+  shaders.names["initial"]->second.shader.bind();
+  device_initial_line.render();
+  glDrawArrays(GL_LINE_STRIP, 0, device_initial_line.vertices.size());
+
+  if (smooth_line_drawing) {
+    shaders.names["points"]->second.shader.bind();
+    // device_line.render();
+    device_line.device_handle.bind();
+    glDrawArrays(GL_LINE_STRIP, 0, device_line.vertices.size());
+  }
 }
 
 void viewer::run() {
@@ -358,6 +377,8 @@ auto viewer::select_vertex(float x, float y) -> polyhedral_surface::vertex_id {
 }
 
 void viewer::select_origin_vertex(float x, float y) {
+  device_line.vertices.clear();
+  device_line.update();
   destination_vertex = polyhedral_surface::invalid;
   line_vids.clear();
   origin_vertex = select_vertex(x, y);
@@ -457,10 +478,10 @@ void viewer::update_line() {
 
   // Update the structure for line rendering.
   //
-  device_line.vertices.clear();
+  device_initial_line.vertices.clear();
   for (auto vid : line_vids)
-    device_line.vertices.push_back(surface.vertices[vid].position);
-  device_line.update();
+    device_initial_line.vertices.push_back(surface.vertices[vid].position);
+  device_initial_line.update();
 }
 
 void viewer::shorten_line() {

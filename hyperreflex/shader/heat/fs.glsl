@@ -1,5 +1,7 @@
 #version 330 core
 
+uniform bool lighting = true;
+
 in vec3 pos;
 in vec3 nor;
 in float hea;
@@ -46,17 +48,19 @@ void main() {
   d = min(d, edge_distance.z);
   float line_width = 0.05;
   float line_delta = 1.0;
-  float alpha = 1.0;
-  vec4 line_color = vec4(vec3(0.2), 1.0);
+  float alpha = 0.8;
+  vec4 line_color = vec4(vec3(0.2), alpha);
   float mix_value =
       smoothstep(line_width - line_delta, line_width + line_delta, d);
   // Compute viewer shading.
   float s = abs(normalize(nor).z);
   float light = 0.2 + 1.0 * pow(s, 1000) + 0.75 * pow(s, 0.2);
   // float light = 0.2 + 0.75 * pow(s, 0.2);
-  // vec4 light_color = vec4(vec3(light), 1.0);
+  vec4 light_color = vec4(vec3(light), alpha);
   // Mix both color values.
-  vec4 light_color = colormap(hea);
+  vec4 color = vec4(vec3(colormap(hea)), alpha);
+  //light_color = mix(color, light_color, 0.0);
+  if (!lighting) light_color = color;
   frag_color = mix(line_color, light_color, mix_value);
   // if (mix_value > 0.9) discard;
   //   frag_color = (1 - mix_value) * line_color;

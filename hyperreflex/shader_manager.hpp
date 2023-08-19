@@ -33,7 +33,8 @@ struct shader_manager {
   }
 
   using shader_table = unordered_map<filesystem::path, shader_data>;
-  using shader_entry = typename shader_table::const_iterator;
+  // using shader_entry = typename shader_table::const_iterator;
+  using shader_entry = typename shader_table::iterator;
   using name_table = unordered_map<string, shader_entry>;
 
   /// This routine assumes that the path has not already been loaded

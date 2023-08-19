@@ -123,6 +123,7 @@ class viewer : viewer_context {
   //
   bool selecting = false;
   points device_line;
+  points device_initial_line;
   vector<polyhedral_surface::vertex_id> line_vids{};
 
   // Heat Geodsics from libigl
@@ -141,6 +142,9 @@ class viewer : viewer_context {
   unique_ptr<geometrycentral::surface::EdgeLengthGeometry> lifted_geometry{};
 
   float tolerance = 10.0f;
+
+  bool lighting = true;
+  bool smooth_line_drawing = true;
 };
 
 }  // namespace hyperreflex
