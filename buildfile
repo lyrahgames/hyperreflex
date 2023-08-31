@@ -1,1 +1,1 @@
-./: {*/ -build/} doc{README.md} manifest
+./: {*/ -build/} doc{README.md AUTHORS.md} manifest legal{COPYING.md}
