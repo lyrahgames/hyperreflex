@@ -133,16 +133,49 @@
 </table>
 </b>
 
-## Getting Started
+## Building
+Currently, only the development mode is supported.
 
-```
-mkdir hyperreflex && cd hyperreflex
-git clone https://github.com/lyrahgames/hyperreflex.git
-cd hyperreflex
-bdep init -C @gcc cc config.cxx=g++ config.cxx.coptions="-O3 -march=native"
-b
-hyperreflex/hypereflex <surface mesh file>
-```
+### Clone the Repository
+For the development and the proper handling of multiple configurations, it is recommend to clone the repository into its own directory.
+
+    mkdir hyperreflex && cd hyperreflex
+    git clone https://github.com/lyrahgames/hyperreflex.git
+    cd hyperreflex
+
+### Initialization
+To create a basic target configuration with the name `default` with the system's default GCC compiler and enabled optimization flags, run the following command.
+
+    bdep init -C \                                # Create a new configuration for initialization.
+        @default \                                # Name the configuration 'default'.
+        cc \                                      # Load the `cc` module to properly handle C and C++.
+        config.cxx=g++ \                          # Use the system's default GCC C++ compiler.
+        config.cxx.coptions="-O3 -march=native" \ # Enable optimization.
+        -- "sys:assimp/*"                         # Mark 'assimp' as system dependency.
+
+During the creation and initialization of a new target configuration all dependencies except `assimp` are fetched and downloaded from package repositories.
+The `assimp` dependency needs to be fulfilled by the system itself.
+As the compilation of some dependencies, such as `glbinding` and `sfml-graphics`, takes some time, you might consider marking these as system dependencies, too, by either appending `"?sys:glbinding/*"` and `"?sys:libsfml-graphics/*"` to the previous command or running the following commands after a successful initialization.
+
+    bdep sync "?sys:glbinding/*"
+    bdep sync "?sys:libsfml-graphics/*"
+
+### Compilation
+The first compilation will also compile all dependencies and will require more time.
+To compile the program run one of the following commands.
+
+    b
+    bdep update @default
+
+### Clean
+If you need to clean up after a compilation attempt, run one of the following commands.
+
+    b clean
+    bdep clean @default
 
 ## Usage
+If the compilation was successful it should be possible to run the following command with a surface mesh file.
+
+    hyperreflex/hyperreflex <surface mesh file>
+
 ### Keybindings
