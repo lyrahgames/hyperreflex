@@ -188,3 +188,6 @@ If the compilation was successful it should be possible to run the following com
 - H: Toggle visualization of penalty potential.
 - G: Generate shortest geodesic based on initial curve.
 - S: Toggle rendering of smoothed curve.
+
+## Background and References
+Please, refer to [the slides](https://github.com/lyrahgames/hyperreflex-slides).
