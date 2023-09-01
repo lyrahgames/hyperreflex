@@ -12,10 +12,11 @@ email: lyrahgames@mailbox.org
 depends: * build2 >= 0.16.0
 depends: * bpkg >= 0.16.0
 
-depends: libgeometrycentral
-depends: libigl-core
+depends: glm ^0.9.9
+depends: libsfml-graphics ^2.5.1
+depends: glbinding ^3.0.0
 
-requires: assimp
-requires: glm
-requires: sfml-graphics
-requires: glbinding
+depends: libgeometrycentral ; No version constraint for now.
+depends: libigl-core ; No version constraint for now.
+
+depends: assimp ; System Dependency

@@ -1,9 +1,9 @@
 libs =
-import libs += sfml-graphics%lib{sfml-graphics}
 import libs += glbinding%lib{glbinding}
 import libs += glm%lib{glm}
 import libs += assimp%lib{assimp}
 
+import libs += libsfml-graphics%lib{sfml-graphics}
 import libs += libgeometrycentral%lib{geometrycentral}
 import libs += libigl-core%lib{igl-core}
 
