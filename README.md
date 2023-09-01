@@ -178,4 +178,13 @@ If the compilation was successful it should be possible to run the following com
 
     hyperreflex/hyperreflex <surface mesh file>
 
-### Keybindings
+- Escape: Quit the program.
+- Left Mouse Click + Mouse Move: Rotate the camera around the surface.
+- Shift + Left Mouse Click + Mouse Move: Move the surface.
+- Mouse Wheel: Zoom in or out.
+- Mouse Wheel Click: Focus intersection point with surface.
+- Right Mouse Click and Move on Surface Mesh: Draw initial curve.
+- Space: Generate smoothed curve.
+- H: Toggle visualization of penalty potential.
+- G: Generate shortest geodesic based on initial curve.
+- S: Toggle rendering of smoothed curve.
