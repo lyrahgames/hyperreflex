@@ -5,12 +5,12 @@
 using namespace std;
 
 int main(int argc, char* argv[]) {
-  // if (argc != 2) {
-  //   std::cout << "Usage:\n" << argv[0] << " <STL object file path>\n";
-  //   return 0;
-  // }
+  if (argc != 2) {
+    std::cout << "Usage:\n" << argv[0] << " <STL object file path>\n";
+    return 0;
+  }
 
-  // const auto path = filesystem::path(argv[0]).parent_path();
+  const auto path = filesystem::path(argv[0]).parent_path();
 
   // hyperreflex::viewer viewer{};
   // viewer.load_surface(argv[1]);
@@ -32,5 +32,21 @@ int main(int argc, char* argv[]) {
   // viewer.run();
 
   // hyperreflex::application::init();
-  hyperreflex::application::run();
+  // hyperreflex::application::run();
+
+  hyperreflex::application app{};
+
+  app.viewer.load_surface(argv[1]);
+  app.viewer.load_shader(path / "shader/default", "default");
+  app.viewer.load_shader(path / "shader/heat", "flat");
+  app.viewer.load_shader(path / "shader/points", "points");
+  app.viewer.load_shader(path / "shader/initial", "initial");
+  app.viewer.load_shader(path / "shader/critical", "critical");
+  app.viewer.load_shader(path / "shader/contours", "contours");
+  app.viewer.load_shader(path / "shader/selection", "selection");
+  app.viewer.load_shader(path / "shader/boundary", "boundary");
+  app.viewer.load_shader(path / "shader/unoriented", "unoriented");
+  app.viewer.load_shader(path / "shader/inconsistent", "inconsistent");
+
+  app.run();
 }

@@ -19,28 +19,29 @@ namespace hyperreflex {
 // an OpenGL context needs to be created first.
 // We enforce this by inheriting from the context structure.
 //
-class viewer_context {
+// class viewer_context {
+//  public:
+//   viewer_context();
+//   virtual ~viewer_context() noexcept = default;
+
+//   void info(const auto& data) { cout << "INFO:\n" << data << endl; }
+//   void error(const auto& data) { cout << "ERROR:\n" << data << endl; }
+
+//  protected:
+//   sf::Window window{};
+// };
+
+class viewer {
  public:
-  viewer_context();
+  viewer(int x, int y, int width, int height);
 
-  void info(const auto& data) { cout << "INFO:\n" << data << endl; }
-  void error(const auto& data) { cout << "ERROR:\n" << data << endl; }
-
- protected:
-  sf::Window window{};
-};
-
-class viewer : viewer_context {
- public:
-  viewer();
-
-  void resize();
-  void resize(int width, int height);
+  // void resize();
+  void resize(int x, int y, int width, int height);
   void process_events();
   void update();
   void update_view();
   void render();
-  void run();
+  // void run();
 
   void turn(const vec2& angle);
   void shift(const vec2& pixels);
@@ -78,7 +79,7 @@ class viewer : viewer_context {
   void smooth_line();
 
  private:
-  sf::Vector2i mouse_pos{};
+  // sf::Vector2i mouse_pos{};
   bool running = false;
   bool view_should_update = false;
 

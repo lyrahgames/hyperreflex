@@ -27,10 +27,7 @@
 #include <unordered_set>
 #include <vector>
 //
-#include <SFML/Graphics.hpp>
-//
 #include <glbinding/gl/gl.h>
-#include <glbinding/glbinding.h>
 //
 #include <glm/glm.hpp>
 //
@@ -38,7 +35,7 @@
 //
 #include <glm/gtx/norm.hpp>
 
-#define NANOREFLEX_ADD_DEFAULT_CONSTRUCTOR_EXTENSION(TYPE)             \
+#define HYPERREFLEX_ADD_DEFAULT_CONSTRUCTOR_EXTENSION(TYPE)             \
   constexpr auto TYPE##_from(auto&&... args) noexcept(                 \
       noexcept(TYPE(std::forward<decltype(args)>(args)...)))           \
     requires requires { TYPE(std::forward<decltype(args)>(args)...); } \

@@ -56,7 +56,7 @@ using aabb3 = aabb<vec3>;
 
 /// All constructors of 'aabb' can also be used with constructor extensions.
 ///
-NANOREFLEX_ADD_DEFAULT_CONSTRUCTOR_EXTENSION(aabb)
+HYPERREFLEX_ADD_DEFAULT_CONSTRUCTOR_EXTENSION(aabb)
 
 /// Construct an AABB around a range of given points.
 ///
