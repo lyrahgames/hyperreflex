@@ -76,7 +76,7 @@ class viewer {
   float altitude = 0;
   float azimuth = 0;
 
-  camera cam{};
+  struct camera camera {};
 
   // polyhedral_surface surface{};
   scene surface{};

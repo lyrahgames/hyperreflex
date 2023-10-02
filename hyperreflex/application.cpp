@@ -64,12 +64,8 @@ void application::run() {
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
     process_events();
-
-    viewer.update();
-
-    viewer.render();
-    render_imgui();
-
+    update();
+    render();
     glfwSwapBuffers(window);
   }
 }
@@ -202,6 +198,21 @@ void application::process_events() {
     if (mouse_move != vec2{})
       viewer.select_destination_vertex(mouse_pos.x, mouse_pos.y);
   }
+}
+
+void application::update() {
+  viewer.update();
+}
+
+void application::render() {
+  int width, height;
+  glfwGetFramebufferSize(window, &width, &height);
+  glViewport(0, 0, width, height);
+  glClearColor(0, 0, 0, 1.0f);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  viewer.render();
+  render_imgui();
 }
 
 }  // namespace hyperreflex

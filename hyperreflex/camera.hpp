@@ -33,6 +33,9 @@ class camera {
     return 2.0f * atan(tan(0.5f * fov) * pixels.x / pixels.y);
   }
 
+  constexpr auto screen_offset_x() const noexcept { return offset.x; }
+  constexpr auto screen_offset_y() const noexcept { return offset.y; }
+
   constexpr auto screen_width() const noexcept { return pixels.x; }
   constexpr auto screen_height() const noexcept { return pixels.y; }
 
@@ -67,10 +70,21 @@ class camera {
                                          (0.5f * screen_height() - y) * up()))};
   }
 
+  constexpr auto set_screen_offset(int x, int y) noexcept -> camera& {
+    offset.x = x;
+    offset.y = y;
+    return *this;
+  }
+
   constexpr auto set_screen_resolution(int w, int h) noexcept -> camera& {
     pixels.x = w;
     pixels.y = h;
     return *this;
+  }
+
+  constexpr auto set_screen_viewport(int x, int y, int w, int h) noexcept
+      -> camera& {
+    return set_screen_offset(x, y).set_screen_resolution(w, h);
   }
 
   constexpr auto set_vfov(float radians) noexcept -> camera& {
@@ -107,6 +121,7 @@ class camera {
   vec3 z{0, 0, 1};
   vec3 o{0, 0, 0};
 
+  ivec2 offset{};
   ivec2 pixels{500, 500};
   float fov = pi / 4;
 

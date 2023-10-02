@@ -39,6 +39,9 @@ class application final : public application_context {
   void init_event_handlers();
   void process_events();
 
+  void update();
+  void render();
+
  public:
   const char* glsl_version = "#version 330";
   struct viewer viewer;

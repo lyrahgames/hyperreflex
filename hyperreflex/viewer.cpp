@@ -22,7 +22,6 @@ viewer::viewer(int x, int y, int width, int height) {
   glEnable(GL_PROGRAM_POINT_SIZE);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glClearColor(1.0, 1.0, 1.0, 1.0);
   glPointSize(10.0f);
   glLineWidth(4.0f);
 
@@ -37,7 +36,7 @@ viewer::viewer(int x, int y, int width, int height) {
 
 void viewer::resize(int x, int y, int width, int height) {
   glViewport(x, y, width, height);
-  cam.set_screen_resolution(width, height);
+  camera.set_screen_viewport(x, y, width, height);
   view_should_update = true;
 }
 
@@ -50,16 +49,16 @@ void viewer::update_view() {
            sin(altitude) * up;
   p *= radius;
   p += origin;
-  cam.move(p).look_at(origin, up);
+  camera.move(p).look_at(origin, up);
 
-  cam.set_near_and_far(std::max(1e-3f * radius, radius - bounding_radius),
-                       radius + bounding_radius);
+  camera.set_near_and_far(std::max(1e-3f * radius, radius - bounding_radius),
+                          radius + bounding_radius);
 
   shaders.apply([this](opengl::shader_program_handle shader) {
     shader.bind()
-        .set("projection", cam.projection_matrix())
-        .set("view", cam.view_matrix())
-        .try_set("viewport", cam.viewport_matrix());
+        .set("projection", camera.projection_matrix())
+        .set("view", camera.view_matrix())
+        .try_set("viewport", camera.viewport_matrix());
   });
 }
 
@@ -72,13 +71,20 @@ void viewer::update() {
 
   shaders.reload([this](opengl::shader_program_handle shader) {
     shader.bind()
-        .set("projection", cam.projection_matrix())
-        .set("view", cam.view_matrix())
-        .try_set("viewport", cam.viewport_matrix());
+        .set("projection", camera.projection_matrix())
+        .set("view", camera.view_matrix())
+        .try_set("viewport", camera.viewport_matrix());
   });
 }
 
 void viewer::render() {
+  glEnable(GL_SCISSOR_TEST);
+  glScissor(camera.screen_offset_x(), camera.screen_offset_y(),
+            camera.screen_width(), camera.screen_height());
+  glViewport(camera.screen_offset_x(), camera.screen_offset_y(),
+             camera.screen_width(), camera.screen_height());
+  glClearColor(1.0, 1.0, 1.0, 1.0);
+  glClearDepth(1.0);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   glDepthFunc(GL_LEQUAL);
@@ -102,6 +108,8 @@ void viewer::render() {
     device_line.device_handle.bind();
     glDrawArrays(GL_LINE_STRIP, 0, device_line.vertices.size());
   }
+
+  glDisable(GL_SCISSOR_TEST);
 }
 
 void viewer::set_view_should_update() noexcept {
@@ -117,8 +125,8 @@ void viewer::turn(const vec2& angle) {
 }
 
 void viewer::shift(const vec2& pixels) {
-  const auto shift = -pixels.x * cam.right() + pixels.y * cam.up();
-  const auto scale = cam.pixel_size() * radius;
+  const auto shift = -pixels.x * camera.right() + pixels.y * camera.up();
+  const auto scale = camera.pixel_size() * radius;
   origin += scale * shift;
   view_should_update = true;
 }
@@ -129,7 +137,7 @@ void viewer::zoom(float scale) {
 }
 
 void viewer::look_at(float x, float y) {
-  const auto r = cam.primary_ray(x, y);
+  const auto r = camera.primary_ray(x, y);
   if (const auto p = intersection(r, surface)) {
     origin = r(p.t);
     radius = p.t;
@@ -191,8 +199,8 @@ void viewer::fit_view() {
   const auto box = aabb_from(surface);
   origin = box.origin();
   bounding_radius = box.radius();
-  radius = bounding_radius / tan(0.5f * cam.vfov());
-  cam.set_near_and_far(1e-4f * radius, 2 * radius);
+  radius = bounding_radius / tan(0.5f * camera.vfov());
+  camera.set_near_and_far(1e-4f * radius, 2 * radius);
   view_should_update = true;
 }
 
@@ -224,17 +232,17 @@ void viewer::sort_surface_faces_by_depth() {
     const auto& v = surface.vertices;
     const auto p1 =
         (v[f1[0]].position + v[f1[1]].position + v[f1[2]].position) / 3.0f;
-    const auto d1 = length(cam.position() - p1);
+    const auto d1 = length(camera.position() - p1);
     const auto p2 =
         (v[f2[0]].position + v[f2[1]].position + v[f2[2]].position) / 3.0f;
-    const auto d2 = length(cam.position() - p2);
+    const auto d2 = length(camera.position() - p2);
     return d1 > d2;
   });
   surface.device_faces.allocate_and_initialize(faces);
 }
 
 auto viewer::select_vertex(float x, float y) -> polyhedral_surface::vertex_id {
-  const auto r = cam.primary_ray(x, y);
+  const auto r = camera.primary_ray(x, y);
   const auto p = intersection(r, surface);
   if (!p) return polyhedral_surface::invalid;
 
