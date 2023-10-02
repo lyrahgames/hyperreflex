@@ -73,12 +73,12 @@ void application::run() {
 void application::init_imgui() {
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
-  ImGuiIO& io = ImGui::GetIO();
-  (void)io;
-  io.ConfigFlags |=
-      ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
-  io.ConfigFlags |=
-      ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
+  // ImGuiIO& io = ImGui::GetIO();
+  // (void)io;
+  // io.ConfigFlags |=
+  //     ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
+  // io.ConfigFlags |=
+  //     ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
 
   ImGui::StyleColorsDark();
 
@@ -107,6 +107,13 @@ void application::render_imgui() {
 void application::init_event_handlers() {
   glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode,
                                 int action, int mods) {
+    ImGuiIO& io = ImGui::GetIO();
+    if (io.WantCaptureKeyboard) {
+      // if (ImGui::IsFocusingAnyWindow()) {
+      ImGui_ImplGlfw_KeyCallback(window, key, scancode, action, mods);
+      return;
+    }
+
     auto& app = *this_app;
 
     if (action == GLFW_PRESS) {
@@ -164,6 +171,13 @@ void application::init_event_handlers() {
 
   glfwSetMouseButtonCallback(window, [](GLFWwindow* window, int button,
                                         int action, int mods) {
+    ImGuiIO& io = ImGui::GetIO();
+    // io.AddMouseButtonEvent(button, action == GLFW_PRESS);
+    if (io.WantCaptureMouse) {
+      ImGui_ImplGlfw_MouseButtonCallback(window, button, action, mods);
+      return;
+    }
+
     if (button == GLFW_MOUSE_BUTTON_MIDDLE && action == GLFW_PRESS)
       this_app->viewer.look_at(this_app->mouse_pos.x, this_app->mouse_pos.y);
 
@@ -173,6 +187,12 @@ void application::init_event_handlers() {
   });
 
   glfwSetScrollCallback(window, [](GLFWwindow* window, double x, double y) {
+    ImGuiIO& io = ImGui::GetIO();
+    if (io.WantCaptureMouse) {
+      ImGui_ImplGlfw_ScrollCallback(window, x, y);
+      return;
+    }
+
     this_app->viewer.zoom(0.1 * y);
   });
 }
@@ -184,6 +204,9 @@ void application::process_events() {
   glfwGetCursorPos(window, &xpos, &ypos);
   mouse_pos = vec2{xpos, ypos};
   const auto mouse_move = mouse_pos - old_mouse_pos;
+
+  ImGuiIO& io = ImGui::GetIO();
+  if (io.WantCaptureMouse) return;
 
   if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
     const auto lshift_pressed =
