@@ -22,13 +22,11 @@ application* this_app = nullptr;
 
 application_context::application_context() {
   // Create GLFW handler for error messages.
-  //
   glfwSetErrorCallback([](int error, const char* description) {
     throw runtime_error("GLFW Error " + to_string(error) + ": " + description);
   });
 
   // Initialize GLFW.
-  //
   glfwInit();
 
   // Set required OpenGL context version for the window.
@@ -51,20 +49,65 @@ application_context::~application_context() noexcept {
 }
 
 application::application() : viewer{10, 10, 780, 430} {
-  init_window();
   init_imgui();
+  init_event_handlers();
   this_app = this;
 }
 
 application::~application() noexcept {
   free_imgui();
-  free_window();
   this_app = nullptr;
 }
 
-void application::init_window() {
-  // Make window to be closed when pressing Escape
-  // by adding key event handler.
+void application::run() {
+  while (!glfwWindowShouldClose(window)) {
+    glfwPollEvents();
+    process_events();
+
+    viewer.update();
+
+    viewer.render();
+    render_imgui();
+
+    glfwSwapBuffers(window);
+  }
+}
+
+void application::init_imgui() {
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
+  ImGuiIO& io = ImGui::GetIO();
+  (void)io;
+  io.ConfigFlags |=
+      ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
+  io.ConfigFlags |=
+      ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
+
+  ImGui::StyleColorsDark();
+
+  // Setup Platform/Renderer backends
+  ImGui_ImplGlfw_InitForOpenGL(window, true);
+  ImGui_ImplOpenGL3_Init(glsl_version);
+}
+
+void application::free_imgui() noexcept {
+  ImGui_ImplOpenGL3_Shutdown();
+  ImGui_ImplGlfw_Shutdown();
+  ImGui::DestroyContext();
+}
+
+void application::render_imgui() {
+  ImGui_ImplOpenGL3_NewFrame();
+  ImGui_ImplGlfw_NewFrame();
+  ImGui::NewFrame();
+
+  ImGui::ShowDemoWindow();
+
+  ImGui::Render();
+  ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
+void application::init_event_handlers() {
   glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode,
                                 int action, int mods) {
     auto& app = *this_app;
@@ -114,9 +157,6 @@ void application::init_window() {
           break;
       }
     }
-
-    // Update the view every time an event is received.
-    // app.viewer.set_view_should_update();
   });
 
   // Add resize handler.
@@ -140,61 +180,6 @@ void application::init_window() {
   });
 }
 
-void application::free_window() noexcept {}
-
-void application::init_imgui() {
-  IMGUI_CHECKVERSION();
-  ImGui::CreateContext();
-  ImGuiIO& io = ImGui::GetIO();
-  (void)io;
-  io.ConfigFlags |=
-      ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
-  io.ConfigFlags |=
-      ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
-
-  ImGui::StyleColorsDark();
-
-  // Setup Platform/Renderer backends
-  ImGui_ImplGlfw_InitForOpenGL(window, true);
-  ImGui_ImplOpenGL3_Init(glsl_version);
-}
-
-void application::free_imgui() noexcept {
-  ImGui_ImplOpenGL3_Shutdown();
-  ImGui_ImplGlfw_Shutdown();
-  ImGui::DestroyContext();
-}
-
-void application::render_imgui() {
-  ImGui_ImplOpenGL3_NewFrame();
-  ImGui_ImplGlfw_NewFrame();
-  ImGui::NewFrame();
-
-  ImGui::ShowDemoWindow();
-
-  ImGui::Render();
-  ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-}
-
-void application::run() {
-  // Start application loop.
-  while (!glfwWindowShouldClose(window) /*&& viewer->running()*/) {
-    // Handle user and OS events.
-    glfwPollEvents();
-    process_events();
-
-    viewer.update();
-
-    // glClear(GL_COLOR_BUFFER_BIT);
-    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    viewer.render();
-    render_imgui();
-
-    glfwSwapBuffers(window);
-  }
-}
-
 void application::process_events() {
   // Compute the mouse move vector.
   old_mouse_pos = mouse_pos;
@@ -203,7 +188,6 @@ void application::process_events() {
   mouse_pos = vec2{xpos, ypos};
   const auto mouse_move = mouse_pos - old_mouse_pos;
 
-  // Left mouse button should rotate the camera by using spherical coordinates.
   if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
     const auto lshift_pressed =
         glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
@@ -213,7 +197,6 @@ void application::process_events() {
       viewer.turn({-0.01f * mouse_move.x, 0.01f * mouse_move.y});
   }
 
-  // Right mouse button should translate the camera.
   if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
     if (mouse_move != vec2{})
       viewer.select_destination_vertex(mouse_pos.x, mouse_pos.y);

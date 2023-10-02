@@ -32,13 +32,11 @@ class application final : public application_context {
   void run();
 
  private:
-  void init_window();
-  void free_window() noexcept;
-
   void init_imgui();
   void free_imgui() noexcept;
   void render_imgui();
 
+  void init_event_handlers();
   void process_events();
 
  public:

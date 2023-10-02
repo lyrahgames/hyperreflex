@@ -9,28 +9,9 @@
 
 namespace hyperreflex {
 
-// viewer_context::viewer_context() {
-//   sf::ContextSettings settings;
-//   settings.majorVersion = 4;
-//   settings.minorVersion = 5;
-//   // These values need to be set when 3D rendering is required.
-//   settings.depthBits = 24;
-//   settings.stencilBits = 8;
-//   settings.antialiasingLevel = 4;
-
-//   window.create(sf::VideoMode(800, 800), "hyperreflex", sf::Style::Default,
-//                 settings);
-//   window.setVerticalSyncEnabled(true);
-//   window.setKeyRepeatEnabled(false);
-//   window.setActive(true);
-
-//   glbinding::initialize(sf::Context::getFunction);
-// }
-
 viewer::viewer(int x, int y, int width, int height) {
   // To initialize the viewport and matrices,
   // window has to be resized at least once.
-  // resize();
   resize(x, y, width, height);
 
   // Setup for OpenGL
@@ -54,115 +35,10 @@ viewer::viewer(int x, int y, int width, int height) {
   device_line.setup();
 }
 
-// void viewer::resize() {
-//   const auto s = window.getSize();
-//   resize(s.x, s.y);
-// }
-
 void viewer::resize(int x, int y, int width, int height) {
   glViewport(x, y, width, height);
   cam.set_screen_resolution(width, height);
   view_should_update = true;
-}
-
-void viewer::process_events() {
-  // // Get new mouse position and compute movement in space.
-  // const auto new_mouse_pos = sf::Mouse::getPosition(window);
-  // const auto mouse_move = new_mouse_pos - mouse_pos;
-  // mouse_pos = new_mouse_pos;
-
-  // sf::Event event;
-  // while (window.pollEvent(event)) {
-  //   if (event.type == sf::Event::Closed)
-  //     running = false;
-  //   else if (event.type == sf::Event::Resized)
-  //     resize(event.size.width, event.size.height);
-  //   else if (event.type == sf::Event::MouseWheelScrolled)
-  //     zoom(0.1 * event.mouseWheelScroll.delta);
-  //   else if (event.type == sf::Event::MouseButtonPressed) {
-  //     switch (event.mouseButton.button) {
-  //       case sf::Mouse::Middle:
-  //         look_at(event.mouseButton.x, event.mouseButton.y);
-  //         break;
-  //       case sf::Mouse::Right:
-  //         select_origin_vertex(event.mouseButton.x, event.mouseButton.y);
-  //         if (origin_vertex != polyhedral_surface::invalid) selecting = true;
-  //         break;
-  //     }
-  //   } else if (event.type == sf::Event::MouseButtonReleased) {
-  //     switch (event.mouseButton.button) {
-  //       case sf::Mouse::Right:
-  //         select_destination_vertex(event.mouseButton.x, event.mouseButton.y);
-  //         selecting = false;
-  //         break;
-  //     }
-  //   } else if (event.type == sf::Event::KeyPressed) {
-  //     switch (event.key.code) {
-  //       case sf::Keyboard::Escape:
-  //         running = false;
-  //         break;
-  //       case sf::Keyboard::Space:
-  //         // shorten_line();
-  //         smooth_line();
-  //         break;
-  //       case sf::Keyboard::Num9:
-  //         add_normal_displacement();
-  //         break;
-  //       case sf::Keyboard::Num0:
-  //         remove_normal_displacement();
-  //         break;
-  //       case sf::Keyboard::Num1:
-  //         set_y_as_up();
-  //         break;
-  //       case sf::Keyboard::Num2:
-  //         set_z_as_up();
-  //         break;
-  //       case sf::Keyboard::Z:
-  //         sort_surface_faces_by_depth();
-  //         break;
-  //       case sf::Keyboard::Up:
-  //         tolerance *= 1.1f;
-  //         update_heat();
-  //         smooth_line();
-  //         break;
-  //       case sf::Keyboard::Down:
-  //         tolerance *= 0.9f;
-  //         update_heat();
-  //         smooth_line();
-  //         break;
-  //       case sf::Keyboard::G:
-  //         shorten_line();
-  //         break;
-  //       case sf::Keyboard::H:
-  //         lighting = !lighting;
-  //         shaders.names["flat"]->second.shader.bind().set("lighting", lighting);
-  //         break;
-  //       case sf::Keyboard::S:
-  //         smooth_line_drawing = !smooth_line_drawing;
-  //         break;
-  //     }
-  //   }
-  // }
-
-  // if (window.hasFocus()) {
-  //   if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-  //     if (sf::Keyboard::isKeyPressed(sf::Keyboard::LShift))
-  //       shift({mouse_move.x, mouse_move.y});
-  //     else
-  //       turn({-0.01 * mouse_move.x, 0.01 * mouse_move.y});
-  //   }
-
-  //   // if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
-  //   // }
-  //   if (mouse_move != sf::Vector2i{}) {
-  //     if (selecting) {
-  //       select_destination_vertex(mouse_pos.x, mouse_pos.y);
-  //     }
-  //   }
-
-  //   if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
-  //   }
-  // }
 }
 
 void viewer::update_view() {
@@ -231,16 +107,6 @@ void viewer::render() {
 void viewer::set_view_should_update() noexcept {
   view_should_update = true;
 }
-
-// void viewer::run() {
-//   running = true;
-//   while (running) {
-//     process_events();
-//     update();
-//     render();
-//     window.display();
-//   }
-// }
 
 void viewer::turn(const vec2& angle) {
   altitude += angle.y;
