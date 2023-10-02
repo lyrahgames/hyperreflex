@@ -34,6 +34,7 @@ application_context::application_context() {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
   // Force GLFW to use the core profile of OpenGL.
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+  glfwWindowHint(GLFW_SAMPLES, 16);
 
   // Create the window to render in.
   window = glfwCreateWindow(800, 450, "hyperreflex", nullptr, nullptr);
