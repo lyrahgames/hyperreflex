@@ -16,6 +16,10 @@ depends: glm ^0.9.9
 depends: libsfml-graphics ^2.5.1
 depends: glbinding ^3.0.0
 
+depends: glfw ^3.3.8
+depends: libimgui-render-opengl3 ^1.85.0
+depends: libimgui-platform-glfw ^1.85.0
+
 depends: libgeometrycentral ^0.0.1
 depends: libigl-core ^2.5.0-
 
