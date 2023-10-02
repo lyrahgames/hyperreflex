@@ -228,6 +228,10 @@ void viewer::render() {
   }
 }
 
+void viewer::set_view_should_update() noexcept {
+  view_should_update = true;
+}
+
 // void viewer::run() {
 //   running = true;
 //   while (running) {
@@ -386,9 +390,11 @@ void viewer::select_origin_vertex(float x, float y) {
   if (origin_vertex == polyhedral_surface::invalid) return;
   // cout << "origin vid = " << origin_vertex << endl;
   line_vids.push_back(origin_vertex);
+  selecting = true;
 }
 
 void viewer::select_destination_vertex(float x, float y) {
+  if (!selecting) return;
   const auto vid = select_vertex(x, y);
   if (vid == polyhedral_surface::invalid) return;
   destination_vertex = vid;

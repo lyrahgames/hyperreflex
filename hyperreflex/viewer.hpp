@@ -43,6 +43,8 @@ class viewer {
   void render();
   // void run();
 
+  void set_view_should_update() noexcept;
+
   void turn(const vec2& angle);
   void shift(const vec2& pixels);
   void zoom(float scale);
@@ -78,7 +80,8 @@ class viewer {
 
   void smooth_line();
 
- private:
+  // private:
+ public:
   // sf::Vector2i mouse_pos{};
   bool running = false;
   bool view_should_update = false;

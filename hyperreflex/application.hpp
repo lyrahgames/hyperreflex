@@ -24,10 +24,10 @@ class application_context {
   GLFWwindow* window = nullptr;
 };
 
-class application : public application_context {
+class application final : public application_context {
  public:
   application();
-  virtual ~application() noexcept;
+  ~application() noexcept;
 
   void run();
 
@@ -49,6 +49,8 @@ class application : public application_context {
   vec2 mouse_pos;
 };
 
+// GLFW works only with a global state.
+//
 extern application* this_app;
 
 }  // namespace hyperreflex

@@ -67,10 +67,56 @@ void application::init_window() {
   // by adding key event handler.
   glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode,
                                 int action, int mods) {
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-      glfwSetWindowShouldClose(window, GLFW_TRUE);
-      // viewer->stop();
+    auto& app = *this_app;
+
+    if (action == GLFW_PRESS) {
+      switch (key) {
+        case GLFW_KEY_ESCAPE:
+          glfwSetWindowShouldClose(window, GLFW_TRUE);
+          break;
+        case GLFW_KEY_SPACE:
+          app.viewer.smooth_line();
+          break;
+        case GLFW_KEY_1:
+          app.viewer.set_y_as_up();
+          break;
+        case GLFW_KEY_2:
+          app.viewer.set_z_as_up();
+          break;
+        case GLFW_KEY_9:
+          app.viewer.add_normal_displacement();
+          break;
+        case GLFW_KEY_0:
+          app.viewer.remove_normal_displacement();
+          break;
+
+        case GLFW_KEY_UP:
+          app.viewer.tolerance *= 1.1f;
+          app.viewer.update_heat();
+          app.viewer.smooth_line();
+          break;
+        case GLFW_KEY_DOWN:
+          app.viewer.tolerance *= 0.9f;
+          app.viewer.update_heat();
+          app.viewer.smooth_line();
+          break;
+
+        case GLFW_KEY_H:
+          app.viewer.lighting = !app.viewer.lighting;
+          app.viewer.shaders.names["flat"]->second.shader.bind().set(
+              "lighting", app.viewer.lighting);
+          break;
+        case GLFW_KEY_S:
+          app.viewer.smooth_line_drawing = !app.viewer.smooth_line_drawing;
+          break;
+        case GLFW_KEY_Z:
+          app.viewer.sort_surface_faces_by_depth();
+          break;
+      }
     }
+
+    // Update the view every time an event is received.
+    // app.viewer.set_view_should_update();
   });
 
   // Add resize handler.
@@ -78,6 +124,16 @@ void application::init_window() {
       window, [](GLFWwindow* window, int width, int height) {
         this_app->viewer.resize(10, 10, width - 20, height - 20);
       });
+
+  glfwSetMouseButtonCallback(window, [](GLFWwindow* window, int button,
+                                        int action, int mods) {
+    if (button == GLFW_MOUSE_BUTTON_MIDDLE && action == GLFW_PRESS)
+      this_app->viewer.look_at(this_app->mouse_pos.x, this_app->mouse_pos.y);
+
+    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
+      this_app->viewer.select_origin_vertex(this_app->mouse_pos.x,
+                                            this_app->mouse_pos.y);
+  });
 
   glfwSetScrollCallback(window, [](GLFWwindow* window, double x, double y) {
     this_app->viewer.zoom(0.1 * y);
@@ -148,12 +204,20 @@ void application::process_events() {
   const auto mouse_move = mouse_pos - old_mouse_pos;
 
   // Left mouse button should rotate the camera by using spherical coordinates.
-  if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
-    viewer.turn({-0.01f * mouse_move.x, 0.01f * mouse_move.y});
+  if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+    const auto lshift_pressed =
+        glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
+    if (lshift_pressed)
+      viewer.shift(mouse_move);
+    else
+      viewer.turn({-0.01f * mouse_move.x, 0.01f * mouse_move.y});
+  }
 
   // Right mouse button should translate the camera.
-  if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
-    viewer.shift(mouse_move);
+  if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
+    if (mouse_move != vec2{})
+      viewer.select_destination_vertex(mouse_pos.x, mouse_pos.y);
+  }
 }
 
 }  // namespace hyperreflex
