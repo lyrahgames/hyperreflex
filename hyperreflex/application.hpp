@@ -48,6 +48,9 @@ class application final : public application_context {
 
   vec2 old_mouse_pos;
   vec2 mouse_pos;
+
+  bool command_prompt = false;
+  string command_buffer;
 };
 
 // GLFW works only with a global state.

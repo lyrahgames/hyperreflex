@@ -73,18 +73,21 @@ void application::run() {
 void application::init_imgui() {
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
-  // ImGuiIO& io = ImGui::GetIO();
+  ImGuiIO& io = ImGui::GetIO();
   // (void)io;
   // io.ConfigFlags |=
   //     ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
   // io.ConfigFlags |=
   //     ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
+  io.IniFilename = nullptr;
 
   ImGui::StyleColorsDark();
 
   // Setup Platform/Renderer backends
   ImGui_ImplGlfw_InitForOpenGL(window, true);
   ImGui_ImplOpenGL3_Init(glsl_version);
+
+  command_buffer.resize(1024);
 }
 
 void application::free_imgui() noexcept {
@@ -98,24 +101,100 @@ void application::render_imgui() {
   ImGui_ImplGlfw_NewFrame();
   ImGui::NewFrame();
 
-  ImGui::ShowDemoWindow();
+  if (command_prompt) {
+    // ImGui::ShowDemoWindow();
+    // ImGui::InputTextMultiline("command_prompt", nullptr, 0,
+    //                           ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() *
+    //                           16), ImGuiInputTextFlags_AllowTabInput);
+
+    // ImGui::Begin("Hello, World!");
+    // ImGui::Text("This is some useful text.");
+    // ImGui::InputText("test", command_buffer.data(), command_buffer.size());
+    // ImGui::End();
+
+    ImGuiWindowFlags window_flags =
+        // ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
+        ImGuiWindowFlags_NoSavedSettings
+        //     // | ImGuiWindowFlags_NoFocusOnAppearing
+        | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove;
+    ImGui::SetNextWindowPos(ImVec2(100, 100), ImGuiCond_Always);
+    // ImVec2(1.0f, 1.0f));
+    ImGui::SetNextWindowSize(ImVec2(520, 200));
+    bool tmp = true;
+    ImGui::Begin("Command Prompt", &tmp, window_flags);
+    ImGui::SetItemDefaultFocus();
+    ImGui::InputTextMultiline("log", command_buffer.data(),
+                              command_buffer.size(),
+                              ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 8),
+                              ImGuiInputTextFlags_AllowTabInput);
+    // ImGui::SetItemDefaultFocus();
+    // ImGui::SetKeyboardFocusHere(-1);
+    // ImGuiInputTextFlags input_text_flags =
+    // ImGuiInputTextFlags_EnterReturnsTrue; ImGuiInputTextFlags_EscapeClearsAll
+    // | ImGuiInputTextFlags_CallbackCompletion |
+    // ImGuiInputTextFlags_CallbackHistory;
+    // bool reclaim_focus = false;
+    // if (ImGui::InputText("Input", command_buffer.data(),
+    // command_buffer.size(),
+    //                      input_text_flags)) {
+    //   cout << command_buffer << endl;
+    //   command_buffer.assign(command_buffer.size(), '\0');
+    //   reclaim_focus = true;
+    //   command_prompt = false;
+    // }
+    // if (reclaim_focus)
+    ImGui::SetKeyboardFocusHere(-1);
+    ImGui::End();
+  }
 
   ImGui::Render();
   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
 void application::init_event_handlers() {
+  glfwSetFramebufferSizeCallback(
+      window, [](GLFWwindow* window, int width, int height) {
+        auto& app = *this_app;
+        app.viewer.resize(10, 10, width - 20, height - 20);
+      });
+
   glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode,
                                 int action, int mods) {
+    auto& app = *this_app;
+    bool ctrl_pressed = mods & GLFW_MOD_CONTROL;
+
+    // Bindings that need to be handled always.
+    //
+    if (ctrl_pressed && (action == GLFW_PRESS)) {
+      switch (key) {
+        case GLFW_KEY_SPACE:
+          app.command_prompt = !app.command_prompt;
+          return;
+          break;
+
+        case GLFW_KEY_ENTER:
+          // cout << "commit" << endl;
+          cout << app.command_buffer << endl;
+          app.command_buffer.assign(app.command_buffer.size(), '\0');
+          app.command_prompt = false;
+          return;
+          break;
+
+        default:
+          break;
+      }
+    }
+
+    // ImGui Key Handling
+    //
     ImGuiIO& io = ImGui::GetIO();
     if (io.WantCaptureKeyboard) {
-      // if (ImGui::IsFocusingAnyWindow()) {
       ImGui_ImplGlfw_KeyCallback(window, key, scancode, action, mods);
       return;
     }
 
-    auto& app = *this_app;
-
+    // Bindings without modifier keys
+    //
     if (action == GLFW_PRESS) {
       switch (key) {
         case GLFW_KEY_ESCAPE:
@@ -159,15 +238,12 @@ void application::init_event_handlers() {
         case GLFW_KEY_Z:
           app.viewer.sort_surface_faces_by_depth();
           break;
+
+        default:
+          break;
       }
     }
   });
-
-  // Add resize handler.
-  glfwSetFramebufferSizeCallback(
-      window, [](GLFWwindow* window, int width, int height) {
-        this_app->viewer.resize(10, 10, width - 20, height - 20);
-      });
 
   glfwSetMouseButtonCallback(window, [](GLFWwindow* window, int button,
                                         int action, int mods) {
@@ -223,9 +299,7 @@ void application::process_events() {
   }
 }
 
-void application::update() {
-  viewer.update();
-}
+void application::update() { viewer.update(); }
 
 void application::render() {
   int width, height;
