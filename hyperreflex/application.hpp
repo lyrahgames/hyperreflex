@@ -42,6 +42,10 @@ class application final : public application_context {
   void update();
   void render();
 
+  void init_chaiscript();
+  void eval_chaiscript(const filesystem::path& script);
+  void eval_chaiscript(const string& code);
+
  public:
   const char* glsl_version = "#version 330";
   struct viewer viewer;
@@ -51,6 +55,9 @@ class application final : public application_context {
 
   bool command_prompt = false;
   string command_buffer;
+
+  struct impl;
+  unique_ptr<impl> pimpl{};
 };
 
 // GLFW works only with a global state.

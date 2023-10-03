@@ -9,6 +9,8 @@ import libs += glfw%lib{glfw}
 import libs += libimgui-platform-glfw%lib{imgui-platform-glfw}
 import libs += libimgui-render-opengl3%lib{imgui-render-opengl3}
 
+import libs += libchaiscript%lib{chaiscript}
+
 import libs += libgeometrycentral%lib{geometrycentral}
 import libs += libigl-core%liba{igl-core}
 

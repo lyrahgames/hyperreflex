@@ -49,17 +49,6 @@ application_context::~application_context() noexcept {
   glfwTerminate();
 }
 
-application::application() : viewer{10, 10, 780, 430} {
-  init_imgui();
-  init_event_handlers();
-  this_app = this;
-}
-
-application::~application() noexcept {
-  free_imgui();
-  this_app = nullptr;
-}
-
 void application::run() {
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
@@ -174,7 +163,8 @@ void application::init_event_handlers() {
 
         case GLFW_KEY_ENTER:
           // cout << "commit" << endl;
-          cout << app.command_buffer << endl;
+          // cout << app.command_buffer << endl;
+          app.eval_chaiscript(string(app.command_buffer.c_str()));
           app.command_buffer.assign(app.command_buffer.size(), '\0');
           app.command_prompt = false;
           return;
