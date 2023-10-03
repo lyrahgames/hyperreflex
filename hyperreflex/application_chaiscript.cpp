@@ -36,6 +36,16 @@ application::~application() noexcept {
 void application::init_chaiscript() {
   pimpl = make_unique<impl>();
 
+  pimpl->objects.emplace_back(
+      "load_surface", "Load a surface mesh from file.",
+      var(fun([this](const string& path) { viewer.load_surface(path); })));
+
+  pimpl->objects.emplace_back(
+      "load_shader", "Load a shader from file.",
+      var(fun([this](const string& path, const string& name) {
+        viewer.load_shader(path, name);
+      })));
+
   pimpl->objects.emplace_back("fit_view", "Reset to default view.",
                               var(fun([this] { viewer.fit_view(); })));
 
