@@ -290,7 +290,9 @@ void application::process_events() {
   }
 }
 
-void application::update() { viewer.update(); }
+void application::update() {
+  viewer.update();
+}
 
 void application::render() {
   int width, height;

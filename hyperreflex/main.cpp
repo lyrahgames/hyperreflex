@@ -8,13 +8,14 @@ using namespace std;
 using namespace spdlog;
 
 int main(int argc, const char* argv[]) {
-  spdlog::set_pattern("%^[%l]%$[tid %t]\n%v\n");
-
   const auto path = filesystem::path(argv[0]).parent_path();
 
   CLI::App cli{
       "hyperreflex: Smoothing of Surface Mesh Curves by Using Geodesics and "
       "Penalty Potentials"};
+
+  string log_pattern = "%^[%l]%$[tid %t]\n%v\n";
+  cli.add_option("--log-pattern", log_pattern, "Set log pattern.");
 
   filesystem::path mesh_path{};
   cli.add_option("-m,--mesh,mesh-pos", mesh_path,
@@ -34,37 +35,12 @@ int main(int argc, const char* argv[]) {
     return exit_code;
   }
 
-  // if (argc != 2) {
-  //   std::cout << "Usage:\n" << argv[0] << " <STL object file path>\n";
-  //   return 0;
-  // }
-
-  // hyperreflex::viewer viewer{};
-  // viewer.load_surface(argv[1]);
-
-  // viewer.load_shader(path / "shader/default", "default");
-  // viewer.load_shader(path / "shader/heat", "flat");
-  // viewer.load_shader(path / "shader/points", "points");
-  // viewer.load_shader(path / "shader/initial", "initial");
-  // viewer.load_shader(path / "shader/critical", "critical");
-  // viewer.load_shader(path / "shader/contours", "contours");
-  // viewer.load_shader(path / "shader/selection", "selection");
-  // viewer.load_shader(path / "shader/boundary", "boundary");
-  // viewer.load_shader(path / "shader/unoriented", "unoriented");
-  // viewer.load_shader(path / "shader/inconsistent", "inconsistent");
-
-  // // viewer.load_surface_shader(path / "shader/default");
-  // // viewer.load_selection_shader(path / "shader/selection");
-  // // viewer.load_surface_curve_point_shader((path /
-  // "shader/points").c_str()); viewer.run();
-
-  // hyperreflex::application::init();
-  // hyperreflex::application::run();
+  spdlog::set_pattern(log_pattern);
 
   hyperreflex::application app{};
 
-  if (!mesh_path.empty()) app.viewer.async_load_surface(mesh_path);
   if (!chai_script.empty()) app.eval_chaiscript(chai_script);
+  if (!mesh_path.empty()) app.viewer.async_load_surface(mesh_path);
 
   app.viewer.load_shader(path / "shader/default", "default");
   app.viewer.load_shader(path / "shader/heat", "flat");

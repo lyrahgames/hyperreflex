@@ -36,6 +36,10 @@ application::~application() noexcept {
 void application::init_chaiscript() {
   pimpl = make_unique<impl>();
 
+  pimpl->objects.emplace_back(
+      "set_log_pattern", "Set log pattern.",
+      var(fun([](const string& pattern) { spdlog::set_pattern(pattern); })));
+
   pimpl->objects.emplace_back("bin_path", "Path to executable folder.",
                               var(bin_path.string()));
 
