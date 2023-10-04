@@ -28,6 +28,8 @@
 #include <unordered_set>
 #include <vector>
 //
+#include <spdlog/spdlog.h>
+//
 #include <glbinding/gl/gl.h>
 //
 #include <glm/glm.hpp>

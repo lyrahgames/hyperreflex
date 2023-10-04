@@ -1,4 +1,6 @@
 libs =
+import libs += spdlog%lib{spdlog}
+
 import libs += glbinding%lib{glbinding}
 import libs += glm%lib{glm}
 import libs += assimp%lib{assimp}

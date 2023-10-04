@@ -7,6 +7,8 @@
 //
 #include <igl/avg_edge_length.h>
 
+using namespace spdlog;
+
 namespace hyperreflex {
 
 viewer::viewer(int x, int y, int width, int height) {
@@ -112,9 +114,7 @@ void viewer::render() {
   glDisable(GL_SCISSOR_TEST);
 }
 
-void viewer::set_view_should_update() noexcept {
-  view_should_update = true;
-}
+void viewer::set_view_should_update() noexcept { view_should_update = true; }
 
 void viewer::turn(const vec2& angle) {
   altitude += angle.y;

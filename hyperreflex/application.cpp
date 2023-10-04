@@ -13,6 +13,7 @@
 //
 
 using namespace std;
+using namespace spdlog;
 using namespace gl;
 using namespace glm;
 
@@ -22,8 +23,8 @@ application* this_app = nullptr;
 
 application_context::application_context() {
   // Create GLFW handler for error messages.
-  glfwSetErrorCallback([](int error, const char* description) {
-    throw runtime_error("GLFW Error " + to_string(error) + ": " + description);
+  glfwSetErrorCallback([](int error_code, const char* description) {
+    error("GLFW Error {}: {}", error_code, description);
   });
 
   // Initialize GLFW.

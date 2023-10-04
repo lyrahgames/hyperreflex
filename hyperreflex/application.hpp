@@ -17,15 +17,16 @@ class application_context {
   application_context();
   virtual ~application_context() noexcept;
 
-  void info(const auto& data) { cout << "INFO:\n" << data << endl; }
-  void error(const auto& data) { cout << "ERROR:\n" << data << endl; }
-
  protected:
   GLFWwindow* window = nullptr;
 };
 
 class application final : public application_context {
  public:
+  // using base = application_context;
+  // using base::error;
+  // using base::info;
+
   application(int argc, const char* argv[]);
   ~application() noexcept;
 

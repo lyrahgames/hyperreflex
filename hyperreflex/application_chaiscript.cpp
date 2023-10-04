@@ -2,19 +2,19 @@
 //
 #include <chaiscript/chaiscript.hpp>
 
+using namespace spdlog;
 using namespace chaiscript;
-
-// namespace {
-
-// }  // namespace
 
 namespace hyperreflex {
 
+// Do not export 'object'.
+namespace {
 struct object {
   string name;
   string description;
   Boxed_Value data;
 };
+}  // namespace
 
 struct application::impl {
   ChaiScript chai{};
@@ -82,20 +82,16 @@ void application::init_chaiscript() {
   for (auto& x : pimpl->objects) pimpl->chai.add(x.data, x.name);
 }
 
-void application::eval_chaiscript(const filesystem::path& script) {
-  try {
-    pimpl->chai.eval_file(script);
-  } catch (chaiscript::exception::eval_error& e) {
-    cout << e.what() << endl;
-  }
+void application::eval_chaiscript(const filesystem::path& script) try {
+  pimpl->chai.eval_file(script);
+} catch (chaiscript::exception::eval_error& e) {
+  error("ChaiScript File Eval {}", e.what());
 }
 
-void application::eval_chaiscript(const string& code) {
-  try {
-    pimpl->chai.eval(code);
-  } catch (chaiscript::exception::eval_error& e) {
-    cout << e.what() << endl;
-  }
+void application::eval_chaiscript(const string& code) try {
+  pimpl->chai.eval(code);
+} catch (chaiscript::exception::eval_error& e) {
+  error("ChaiScript String Eval {}", e.what());
 }
 
 }  // namespace hyperreflex
