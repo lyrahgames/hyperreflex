@@ -4,11 +4,11 @@
 
 using namespace std;
 
-int main(int argc, char* argv[]) {
-  if (argc != 2) {
-    std::cout << "Usage:\n" << argv[0] << " <STL object file path>\n";
-    return 0;
-  }
+int main(int argc, const char* argv[]) {
+  // if (argc != 2) {
+  //   std::cout << "Usage:\n" << argv[0] << " <STL object file path>\n";
+  //   return 0;
+  // }
 
   const auto path = filesystem::path(argv[0]).parent_path();
 
@@ -28,15 +28,15 @@ int main(int argc, char* argv[]) {
 
   // // viewer.load_surface_shader(path / "shader/default");
   // // viewer.load_selection_shader(path / "shader/selection");
-  // // viewer.load_surface_curve_point_shader((path / "shader/points").c_str());
-  // viewer.run();
+  // // viewer.load_surface_curve_point_shader((path /
+  // "shader/points").c_str()); viewer.run();
 
   // hyperreflex::application::init();
   // hyperreflex::application::run();
 
-  hyperreflex::application app{};
+  hyperreflex::application app{argc, argv};
 
-  app.viewer.load_surface(argv[1]);
+  // app.viewer.load_surface(argv[1]);
   app.viewer.load_shader(path / "shader/default", "default");
   app.viewer.load_shader(path / "shader/heat", "flat");
   app.viewer.load_shader(path / "shader/points", "points");

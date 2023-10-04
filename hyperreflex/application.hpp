@@ -26,7 +26,7 @@ class application_context {
 
 class application final : public application_context {
  public:
-  application();
+  application(int argc, const char* argv[]);
   ~application() noexcept;
 
   void run();
@@ -58,6 +58,8 @@ class application final : public application_context {
 
   struct impl;
   unique_ptr<impl> pimpl{};
+
+  filesystem::path bin_path{};
 };
 
 // GLFW works only with a global state.

@@ -21,7 +21,9 @@ struct application::impl {
   vector<object> objects{};
 };
 
-application::application() : viewer{10, 10, 780, 430} {
+application::application(int argc, const char* argv[])
+    : viewer{10, 10, 780, 430},
+      bin_path{filesystem::path(argv[0]).parent_path()} {
   init_imgui();
   init_event_handlers();
   init_chaiscript();
@@ -36,6 +38,9 @@ application::~application() noexcept {
 void application::init_chaiscript() {
   pimpl = make_unique<impl>();
 
+  pimpl->objects.emplace_back("bin_path", "Path to executable folder.",
+                              var(bin_path.string()));
+
   pimpl->objects.emplace_back(
       "load_surface", "Load a surface mesh from file.",
       var(fun([this](const string& path) { viewer.load_surface(path); })));
@@ -48,6 +53,23 @@ void application::init_chaiscript() {
 
   pimpl->objects.emplace_back("fit_view", "Reset to default view.",
                               var(fun([this] { viewer.fit_view(); })));
+
+  pimpl->objects.emplace_back("turn", "Turn the object.",
+                              var(fun([this](float x, float y) {
+                                viewer.turn({x, y});
+                              })));
+
+  pimpl->objects.emplace_back("shift", "Shift the object.",
+                              var(fun([this](float x, float y) {
+                                viewer.shift({x, y});
+                              })));
+
+  pimpl->objects.emplace_back("zoom", "Zoom in or out.",
+                              var(fun([this](float d) { viewer.zoom(d); })));
+
+  pimpl->objects.emplace_back(
+      "look_at", "Look at the surface at given pixels.",
+      var(fun([this](float x, float y) { viewer.look_at(x, y); })));
 
   pimpl->objects.emplace_back(
       "help", "Print available functions.", var(fun([this] {
