@@ -34,7 +34,9 @@ class viewer {
   void set_y_as_up();
 
   void load_surface(const filesystem::path& path);
+  void async_load_surface(const filesystem::path& path);
   void handle_surface_load_task();
+
   void fit_view();
   void print_surface_info();
 
@@ -80,6 +82,8 @@ class viewer {
 
   // polyhedral_surface surface{};
   scene surface{};
+
+  bool surface_should_update = false;
 
   // The loading of mesh data can take quite a long time
   // and may let the window manager think the program is frozen

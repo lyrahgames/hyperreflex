@@ -8,17 +8,30 @@ using namespace std;
 using namespace spdlog;
 
 int main(int argc, const char* argv[]) {
+  spdlog::set_pattern("%^[%l]%$[tid %t]\n%v\n");
+
   const auto path = filesystem::path(argv[0]).parent_path();
 
-  CLI::App cli{"app description"};
-  int p = 0;
-  cli.add_option("-p", p, "Parameter");
-  // CLI11_PARSE(cli, argc, argv);
+  CLI::App cli{
+      "hyperreflex: Smoothing of Surface Mesh Curves by Using Geodesics and "
+      "Penalty Potentials"};
+
+  filesystem::path mesh_path{};
+  cli.add_option("-m,--mesh,mesh-pos", mesh_path,
+                 "Surface mesh file to be loaded.");
+
+  filesystem::path chai_script{};
+  cli.add_option("--chai", chai_script,
+                 "Load and execute given ChaiScript file at start-up.");
+
   try {
     cli.parse(argc, argv);
   } catch (const CLI::ParseError& e) {
-    error("Program Options {}", e.what());
-    return cli.exit(e);
+    stringstream out{}, err{};
+    const auto exit_code = cli.exit(e, out, err);
+    if (!err.view().empty()) error("Program Options:\n{}", err.view());
+    if (!out.view().empty()) info("Program Options:\n{}", out.view());
+    return exit_code;
   }
 
   // if (argc != 2) {
@@ -50,7 +63,9 @@ int main(int argc, const char* argv[]) {
 
   hyperreflex::application app{};
 
-  // app.viewer.load_surface(argv[1]);
+  if (!mesh_path.empty()) app.viewer.async_load_surface(mesh_path);
+  if (!chai_script.empty()) app.eval_chaiscript(chai_script);
+
   app.viewer.load_shader(path / "shader/default", "default");
   app.viewer.load_shader(path / "shader/heat", "flat");
   app.viewer.load_shader(path / "shader/points", "points");

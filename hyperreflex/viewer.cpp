@@ -71,6 +71,12 @@ void viewer::update() {
     view_should_update = false;
   }
 
+  if (surface_should_update) {
+    surface.update();
+    compute_heat_data();
+    surface_should_update = false;
+  }
+
   shaders.reload([this](opengl::shader_program_handle shader) {
     shader.bind()
         .set("projection", camera.projection_matrix())
@@ -114,7 +120,9 @@ void viewer::render() {
   glDisable(GL_SCISSOR_TEST);
 }
 
-void viewer::set_view_should_update() noexcept { view_should_update = true; }
+void viewer::set_view_should_update() noexcept {
+  view_should_update = true;
+}
 
 void viewer::turn(const vec2& angle) {
   altitude += angle.y;
@@ -160,23 +168,43 @@ void viewer::set_y_as_up() {
 }
 
 void viewer::load_surface(const filesystem::path& path) {
-  const auto loader = [this](const filesystem::path& path) {
-    try {
-      const auto load_start = clock::now();
-      surface.host() = polyhedral_surface_from(path);
-      const auto load_end = clock::now();
+  try {
+    const auto load_start = clock::now();
+    surface.host() = polyhedral_surface_from(path);
+    const auto load_end = clock::now();
 
-      cout << "loaded" << endl;
-      // Evaluate loading and processing time.
-      surface_load_time = duration<float32>(load_end - load_start).count();
+    // Evaluate loading and processing time.
+    surface_load_time = duration<float32>(load_end - load_start).count();
 
-    } catch (exception& e) {
-      cout << "failed.\n" << e.what() << endl;
-      return;
-    }
-  };
-  surface_load_task = async(launch::async, loader, path);
-  cout << "Loading " << path << "..." << endl;
+    // surface.update();
+    fit_view();
+    // print_surface_info();
+    compute_topology_and_geometry();
+
+    surface_should_update = true;
+
+    info("Sucessfully loaded surface mesh from file.\nfile = '{}'",
+         path.string());
+
+  } catch (exception& e) {
+    error("Failed to load surface mesh from file.\n{}\nfile = '{}'",  //
+          e.what(), path.string());
+    return;
+  }
+}
+
+void viewer::async_load_surface(const filesystem::path& path) {
+  if (surface_load_task.valid()) {
+    error(
+        "Failed to start asynchronous loading of surface mesh from file.\nIt "
+        "seems another surface mesh is already loading.\n file = '{}'",
+        path.string());
+    return;
+  }
+  surface_load_task =
+      async(launch::async, [this, &path] { load_surface(path); });
+  info("Started to asynchronously load surface mesh from file.\nfile = '{}'",
+       path.string());
 }
 
 void viewer::handle_surface_load_task() {
@@ -185,14 +213,10 @@ void viewer::handle_surface_load_task() {
     // cout << "." << flush;
     return;
   }
-  cout << "done." << endl << '\n';
-  surface_load_task = {};
 
-  surface.update();
-  fit_view();
-  print_surface_info();
-  compute_topology_and_geometry();
-  compute_heat_data();
+  // info("Sucessfully finished to asynchronously load surface mesh.");
+
+  surface_load_task = {};
 }
 
 void viewer::fit_view() {

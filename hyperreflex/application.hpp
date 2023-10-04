@@ -44,6 +44,8 @@ class application final : public application_context {
   void render();
 
   void init_chaiscript();
+
+ public:
   void eval_chaiscript(const filesystem::path& script);
   void eval_chaiscript(const string& code);
 
