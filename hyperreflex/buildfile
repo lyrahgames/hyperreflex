@@ -1,5 +1,6 @@
 libs =
 import libs += spdlog%lib{spdlog}
+import libs += cli11%lib{cli11}
 
 import libs += glbinding%lib{glbinding}
 import libs += glm%lib{glm}

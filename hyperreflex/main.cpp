@@ -1,16 +1,30 @@
 // #include <hyperreflex/viewer.hpp>
 //
 #include <hyperreflex/application.hpp>
+//
+#include <CLI/CLI.hpp>
 
 using namespace std;
+using namespace spdlog;
 
 int main(int argc, const char* argv[]) {
+  const auto path = filesystem::path(argv[0]).parent_path();
+
+  CLI::App cli{"app description"};
+  int p = 0;
+  cli.add_option("-p", p, "Parameter");
+  // CLI11_PARSE(cli, argc, argv);
+  try {
+    cli.parse(argc, argv);
+  } catch (const CLI::ParseError& e) {
+    error("Program Options {}", e.what());
+    return cli.exit(e);
+  }
+
   // if (argc != 2) {
   //   std::cout << "Usage:\n" << argv[0] << " <STL object file path>\n";
   //   return 0;
   // }
-
-  const auto path = filesystem::path(argv[0]).parent_path();
 
   // hyperreflex::viewer viewer{};
   // viewer.load_surface(argv[1]);
@@ -34,7 +48,7 @@ int main(int argc, const char* argv[]) {
   // hyperreflex::application::init();
   // hyperreflex::application::run();
 
-  hyperreflex::application app{argc, argv};
+  hyperreflex::application app{};
 
   // app.viewer.load_surface(argv[1]);
   app.viewer.load_shader(path / "shader/default", "default");

@@ -27,7 +27,7 @@ class application final : public application_context {
   // using base::error;
   // using base::info;
 
-  application(int argc, const char* argv[]);
+  application();
   ~application() noexcept;
 
   void run();

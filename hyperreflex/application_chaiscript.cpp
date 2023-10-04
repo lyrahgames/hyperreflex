@@ -21,9 +21,7 @@ struct application::impl {
   vector<object> objects{};
 };
 
-application::application(int argc, const char* argv[])
-    : viewer{10, 10, 780, 430},
-      bin_path{filesystem::path(argv[0]).parent_path()} {
+application::application() : viewer{10, 10, 780, 430} {
   init_imgui();
   init_event_handlers();
   init_chaiscript();

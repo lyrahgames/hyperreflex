@@ -13,6 +13,7 @@ depends: * build2 >= 0.16.0
 depends: * bpkg >= 0.16.0
 
 depends: spdlog ^1.11.0
+depends: cli11 ^2.2.0
 
 depends: glm ^0.9.9
 depends: libsfml-graphics ^2.5.1
