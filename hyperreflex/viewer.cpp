@@ -466,13 +466,20 @@ void viewer::update_heat() {
   igl::heat_geodesics_solve(heat_data, gamma, heat);
 
   potential.assign(heat.size(), 0);
-  double max_heat = 0;
-  for (size_t i = 0; i < heat.size(); ++i)
-    max_heat = std::max(max_heat, heat[i]);
+  // double max_heat = 0;
+  // for (size_t i = 0; i < heat.size(); ++i)
+  //   max_heat = std::max(max_heat, heat[i]);
+  double max_heat = 1.0;
   for (size_t i = 0; i < potential.size(); ++i)
     potential[i] = heat[i] / max_heat;
+  for (auto i : line_vids) potential[i] = 0;
   const auto modifier = [this](auto x) {
-    return (x <= 1e-4f) ? 0 : exp(-1.0f / tolerance / x);
+    // return tolerance * (x + sin(tolerance * x));
+    return (x <= 1e-4)
+               ? 0
+               : tolerance * tolerance * x * x * exp(-1.0f / tolerance / x);
+    // return tolerance * sqrt(x);
+    // return (tolerance * x) * (tolerance * x);
   };
   for (size_t i = 0; i < potential.size(); ++i)
     potential[i] = modifier(potential[i]);
@@ -552,6 +559,7 @@ void viewer::smooth_line() {
   }
 
   FlipEdgeNetwork network(*mesh, *lifted_geometry, {edges});
+  // network.iterativeShorten(INVALID_IND, 0.0);
   network.iterativeShorten();
   network.posGeom = geometry.get();
   vector<Vector3> path = network.getPathPolyline3D().front();
