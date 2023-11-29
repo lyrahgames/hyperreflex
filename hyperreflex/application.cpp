@@ -38,7 +38,7 @@ application_context::application_context() {
   glfwWindowHint(GLFW_SAMPLES, 16);
 
   // Create the window to render in.
-  window = glfwCreateWindow(800, 450, "hyperreflex", nullptr, nullptr);
+  window = glfwCreateWindow(512, 512, "hyperreflex", nullptr, nullptr);
 
   // Initialize the OpenGL context for the current window by using glbinding.
   glfwMakeContextCurrent(window);
@@ -142,11 +142,12 @@ void application::render_imgui() {
 }
 
 void application::init_event_handlers() {
-  glfwSetFramebufferSizeCallback(
-      window, [](GLFWwindow* window, int width, int height) {
-        auto& app = *this_app;
-        app.viewer.resize(10, 10, width - 20, height - 20);
-      });
+  glfwSetFramebufferSizeCallback(window,
+                                 [](GLFWwindow* window, int width, int height) {
+                                   auto& app = *this_app;
+                                   // app.viewer.resize(10, 10, width - 20, height - 20);
+                                   app.viewer.resize(0, 0, width, height);
+                                 });
 
   glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode,
                                 int action, int mods) {
@@ -228,6 +229,10 @@ void application::init_event_handlers() {
           break;
         case GLFW_KEY_Z:
           app.viewer.sort_surface_faces_by_depth();
+          break;
+
+        case GLFW_KEY_I:
+          app.viewer.print_surface_info();
           break;
 
         default:

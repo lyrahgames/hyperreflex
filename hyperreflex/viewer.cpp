@@ -106,11 +106,14 @@ void viewer::render() {
 
   glDepthFunc(GL_ALWAYS);
 
+  glLineWidth(2.0f);
   shaders.names["initial"]->second.shader.bind();
-  device_initial_line.render();
+  // device_initial_line.render();
+  device_initial_line.device_handle.bind();
   glDrawArrays(GL_LINE_STRIP, 0, device_initial_line.vertices.size());
 
   if (smooth_line_drawing) {
+    glLineWidth(4.0f);
     shaders.names["points"]->second.shader.bind();
     // device_line.render();
     device_line.device_handle.bind();
@@ -171,6 +174,7 @@ void viewer::load_surface(const filesystem::path& path) {
   try {
     const auto load_start = clock::now();
     surface.host() = polyhedral_surface_from(path);
+    surface.host().generate_edges();
     const auto load_end = clock::now();
 
     // Evaluate loading and processing time.
@@ -242,6 +246,8 @@ void viewer::print_surface_info() {
        << " = " << setw(right_width) << surface.vertices.size() << '\n'
        << setw(left_width) << "faces"
        << " = " << setw(right_width) << surface.faces.size() << '\n'
+       << setw(left_width) << "edges"
+       << " = " << setw(right_width) << surface.edges.size() << '\n'
        << endl;
 }
 
@@ -299,7 +305,40 @@ void viewer::select_destination_vertex(float x, float y) {
   // cout << "destination vid = " << destination_vertex << endl;
   // compute_dijkstra_path();
   update_line();
-  update_heat();
+  // update_heat();
+}
+
+void viewer::remove_line_artifacts() {
+  if (line_vids.size() <= 1) return;
+
+  decltype(line_vids) vids{};
+  vids.push_back(line_vids.front());
+
+  for (size_t i = 1; i < line_vids.size(); ++i) {
+    const auto b = vids[vids.size() - 1];
+    const auto c = line_vids[i];
+    if (b == c) continue;
+
+    if (vids.size() < 2) {
+      vids.push_back(c);
+      continue;
+    }
+
+    const auto a = vids[vids.size() - 2];
+    if (c == a) {
+      vids.pop_back();
+      continue;
+    }
+    if (surface.edges.contains({c, a}) || surface.edges.contains({a, c})) {
+      vids.pop_back();
+      vids.push_back(c);
+      continue;
+    }
+
+    vids.push_back(c);
+  }
+
+  line_vids.swap(vids);
 }
 
 void viewer::compute_topology_and_geometry() {
@@ -379,7 +418,9 @@ void viewer::update_line() {
   //
   for (size_t i = 1; i < path.size(); ++i)
     line_vids.push_back(path[i].vertex.getIndex());
-  origin_vertex = destination_vertex;
+  remove_line_artifacts();
+  // origin_vertex = destination_vertex;
+  origin_vertex = line_vids.back();
 
   // Update the structure for line rendering.
   //
@@ -465,6 +506,8 @@ void viewer::update_heat() {
 
   igl::heat_geodesics_solve(heat_data, gamma, heat);
 
+  device_heat.allocate_and_initialize(potential);
+
   potential.assign(heat.size(), 0);
   // double max_heat = 0;
   // for (size_t i = 0; i < heat.size(); ++i)
@@ -473,16 +516,26 @@ void viewer::update_heat() {
   for (size_t i = 0; i < potential.size(); ++i)
     potential[i] = heat[i] / max_heat;
   for (auto i : line_vids) potential[i] = 0;
+
   const auto modifier = [this](auto x) {
+    const auto bump = [](auto x) {
+      const auto f = [](auto x) { return (x <= 1e-4) ? 0 : exp(-1 / x); };
+      return f(x) / (f(x) + f(1 - x));
+    };
+    const auto square = [](auto x) { return x * x; };
+    const auto t = tolerance * x;
+    return square(t) * bump(t);
     // return tolerance * (x + sin(tolerance * x));
-    return (x <= 1e-4)
-               ? 0
-               : tolerance * tolerance * x * x * exp(-1.0f / tolerance / x);
+    // return (x <= 1e-4)
+    //            ? 0
+    //            : tolerance * tolerance * x * x * exp(-1.0f / tolerance / x);
     // return tolerance * sqrt(x);
     // return (tolerance * x) * (tolerance * x);
   };
+
   for (size_t i = 0; i < potential.size(); ++i)
     potential[i] = modifier(potential[i]);
+
   device_heat.allocate_and_initialize(potential);
 
   // Generate vertex data for constructors.
@@ -535,6 +588,12 @@ void viewer::remove_normal_displacement() {
 void viewer::smooth_line() {
   if (line_vids.size() <= 1) return;
 
+  const auto start = clock::now();
+
+  update_heat();
+
+  const auto heat_end = clock::now();
+
   using namespace geometrycentral;
   using namespace surface;
 
@@ -563,6 +622,17 @@ void viewer::smooth_line() {
   network.iterativeShorten();
   network.posGeom = geometry.get();
   vector<Vector3> path = network.getPathPolyline3D().front();
+
+  const auto end = clock::now();
+
+  const auto heat_time = duration<float>(heat_end - start).count();
+  const auto geoesic_time = duration<float>(end - heat_end).count();
+  const auto time = duration<float>(end - start).count();
+
+  cout << "time = " << time << " s\n"
+       << "heat time = " << heat_time << " s\n"
+       << "geodesic time = " << geoesic_time << " s\n"
+       << endl;
 
   device_line.vertices.clear();
   for (const auto& v : path)

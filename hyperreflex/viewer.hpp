@@ -50,6 +50,8 @@ class viewer {
 
   void compute_topology_and_geometry();
 
+  void remove_line_artifacts();
+
   void compute_dijkstra_path();
   void update_line();
   void shorten_line();

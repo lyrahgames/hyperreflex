@@ -21,8 +21,31 @@ struct polyhedral_surface {
   struct face : array<vertex_id, 3> {};
   using face_id = uint32;
 
+  struct edge : array<vertex_id, 2> {
+    struct info {
+      face_id face;
+    };
+
+    struct hasher {
+      auto operator()(const edge& e) const noexcept -> size_t {
+        return (size_t(e[0]) << 7) ^ size_t(e[1]);
+      }
+    };
+  };
+
+  void generate_edges() {
+    edges.clear();
+    for (size_t i = 0; i < faces.size(); ++i) {
+      const auto& f = faces[i];
+      edges[edge{f[0], f[1]}].face = i;
+      edges[edge{f[1], f[2]}].face = i;
+      edges[edge{f[2], f[0]}].face = i;
+    }
+  }
+
   vector<vertex> vertices{};
   vector<face> faces{};
+  unordered_map<edge, edge::info, edge::hasher> edges{};
 };
 
 auto polyhedral_surface_from(const stl_surface& data) -> polyhedral_surface;

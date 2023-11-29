@@ -21,7 +21,7 @@ struct application::impl {
   vector<object> objects{};
 };
 
-application::application() : viewer{10, 10, 780, 430} {
+application::application() : viewer{0, 0, 512, 512} {
   init_imgui();
   init_event_handlers();
   init_chaiscript();

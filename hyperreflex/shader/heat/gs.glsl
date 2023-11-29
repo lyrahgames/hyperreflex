@@ -12,6 +12,7 @@ in float heat[];
 
 out vec3 pos;
 out vec3 nor;
+out vec3 vnor;
 out float hea;
 noperspective out vec3 edge_distance;
 
@@ -40,6 +41,7 @@ void main(){
   // nor = normal[0];
   hea = heat[0];
   nor = n;
+  vnor = normal[0];
   pos = position[0];
   gl_Position = gl_in[0].gl_Position;
   EmitVertex();
@@ -48,6 +50,7 @@ void main(){
   // nor = normal[1];
   hea = heat[1];
   nor = n;
+  vnor = normal[1];
   pos = position[1];
   gl_Position = gl_in[1].gl_Position;
   EmitVertex();
@@ -56,6 +59,7 @@ void main(){
   // nor = normal[2];
   hea = heat[2];
   nor = n;
+  vnor = normal[2];
   pos = position[2];
   gl_Position = gl_in[2].gl_Position;
   EmitVertex();
