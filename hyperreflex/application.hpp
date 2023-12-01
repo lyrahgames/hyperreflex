@@ -14,7 +14,7 @@ namespace hyperreflex {
 //
 class application_context {
  public:
-  application_context();
+  application_context(int width = 512, int height = 512);
   virtual ~application_context() noexcept;
 
  protected:
@@ -63,6 +63,9 @@ class application final : public application_context {
   unique_ptr<impl> pimpl{};
 
   filesystem::path bin_path{};
+
+  static constexpr int init_width = 512;
+  static constexpr int init_height = 512;
 };
 
 // GLFW works only with a global state.

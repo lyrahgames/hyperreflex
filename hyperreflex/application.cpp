@@ -21,7 +21,7 @@ namespace hyperreflex {
 
 application* this_app = nullptr;
 
-application_context::application_context() {
+application_context::application_context(int width, int height) {
   // Create GLFW handler for error messages.
   glfwSetErrorCallback([](int error_code, const char* description) {
     error("GLFW Error {}: {}", error_code, description);
@@ -38,7 +38,7 @@ application_context::application_context() {
   glfwWindowHint(GLFW_SAMPLES, 16);
 
   // Create the window to render in.
-  window = glfwCreateWindow(512, 512, "hyperreflex", nullptr, nullptr);
+  window = glfwCreateWindow(width, height, "hyperreflex", nullptr, nullptr);
 
   // Initialize the OpenGL context for the current window by using glbinding.
   glfwMakeContextCurrent(window);
@@ -226,6 +226,9 @@ void application::init_event_handlers() {
           break;
         case GLFW_KEY_S:
           app.viewer.smooth_line_drawing = !app.viewer.smooth_line_drawing;
+          break;
+        case GLFW_KEY_O:
+          app.viewer.initial_line_drawing = !app.viewer.initial_line_drawing;
           break;
         case GLFW_KEY_Z:
           app.viewer.sort_surface_faces_by_depth();

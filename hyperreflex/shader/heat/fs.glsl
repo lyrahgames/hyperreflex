@@ -56,7 +56,7 @@ void main() {
   // Compute distance from edges.
   float d = min(edge_distance.x, edge_distance.y);
   d = min(d, edge_distance.z);
-  float line_width = 0.05;
+  float line_width = 0.01;
   float line_delta = 1.0;
   float alpha = 1.0;
   vec4 line_color = vec4(vec3(0.5), alpha);

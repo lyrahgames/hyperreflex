@@ -130,10 +130,14 @@ class viewer {
 
   unique_ptr<geometrycentral::surface::EdgeLengthGeometry> lifted_geometry{};
 
-  float tolerance = 10.0f;
+  float avg_edge_length = 1.0f;
+  float tolerance = 1.0f;
+  float bound = 1.0f;
+  float transition = 1.0f;
 
   bool lighting = true;
   bool smooth_line_drawing = true;
+  bool initial_line_drawing = true;
 };
 
 }  // namespace hyperreflex

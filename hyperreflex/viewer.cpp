@@ -106,11 +106,13 @@ void viewer::render() {
 
   glDepthFunc(GL_ALWAYS);
 
-  glLineWidth(2.0f);
-  shaders.names["initial"]->second.shader.bind();
-  // device_initial_line.render();
-  device_initial_line.device_handle.bind();
-  glDrawArrays(GL_LINE_STRIP, 0, device_initial_line.vertices.size());
+  if (initial_line_drawing) {
+    glLineWidth(4.0f);
+    shaders.names["initial"]->second.shader.bind();
+    // device_initial_line.render();
+    device_initial_line.device_handle.bind();
+    glDrawArrays(GL_LINE_STRIP, 0, device_initial_line.vertices.size());
+  }
 
   if (smooth_line_drawing) {
     glLineWidth(4.0f);
@@ -227,6 +229,9 @@ void viewer::fit_view() {
   const auto box = aabb_from(surface);
   origin = box.origin();
   bounding_radius = box.radius();
+
+  cout << "bounding radius = " << bounding_radius << endl;
+
   radius = bounding_radius / tan(0.5f * camera.vfov());
   camera.set_near_and_far(1e-4f * radius, 2 * radius);
   view_should_update = true;
@@ -487,8 +492,20 @@ void viewer::compute_heat_data() {
 
   // Construct heat data.
   //
-  auto t =
-      pow(igl::avg_edge_length(surface_vertex_matrix, surface_face_matrix), 2);
+  const auto e =
+      igl::avg_edge_length(surface_vertex_matrix, surface_face_matrix);
+
+  avg_edge_length = e;
+
+  // tolerance = 1 / (2 * e);
+  // bound = e;
+  // cout << "tolerance = " << tolerance << '\n'
+  //      << "bound = " << bound << '\n'
+  //      << endl;
+
+  cout << "avg edge length = " << e << endl;
+
+  auto t = pow(e, 2);
   if (!igl::heat_geodesics_precompute(surface_vertex_matrix,
                                       surface_face_matrix, t, heat_data)) {
     cerr << "ERROR: Precomputation of heat data failed." << endl;
@@ -509,22 +526,23 @@ void viewer::update_heat() {
   device_heat.allocate_and_initialize(potential);
 
   potential.assign(heat.size(), 0);
-  // double max_heat = 0;
-  // for (size_t i = 0; i < heat.size(); ++i)
-  //   max_heat = std::max(max_heat, heat[i]);
-  double max_heat = 1.0;
-  for (size_t i = 0; i < potential.size(); ++i)
-    potential[i] = heat[i] / max_heat;
+  for (size_t i = 0; i < potential.size(); ++i) potential[i] = heat[i];
+
+  double max_distance = 0;
+  for (size_t i = 0; i < heat.size(); ++i)
+    max_distance = std::max(max_distance, heat[i]);
+
+  cout << "max distance = " << max_distance << endl;
   for (auto i : line_vids) potential[i] = 0;
 
   const auto modifier = [this](auto x) {
-    const auto bump = [](auto x) {
-      const auto f = [](auto x) { return (x <= 1e-4) ? 0 : exp(-1 / x); };
-      return f(x) / (f(x) + f(1 - x));
-    };
+    const auto f = [](auto x) { return (x <= 1e-4) ? 0 : exp(-1 / x); };
+    // const auto bump = [f](auto x) {
+    //   return f(x) / (f(x) + f(1 - x));
+    // };
     const auto square = [](auto x) { return x * x; };
-    const auto t = tolerance * x;
-    return square(t) * bump(t);
+    // const auto t = tolerance * x - bound;
+    return x * x * f(x);
     // return tolerance * (x + sin(tolerance * x));
     // return (x <= 1e-4)
     //            ? 0
@@ -534,7 +552,8 @@ void viewer::update_heat() {
   };
 
   for (size_t i = 0; i < potential.size(); ++i)
-    potential[i] = modifier(potential[i]);
+    potential[i] =
+        modifier(tolerance * (potential[i] / surface.mean_edge_length[i]));
 
   device_heat.allocate_and_initialize(potential);
 
@@ -586,6 +605,8 @@ void viewer::remove_normal_displacement() {
 }
 
 void viewer::smooth_line() {
+  cout << "initial line vertices = " << line_vids.size() << endl;
+
   if (line_vids.size() <= 1) return;
 
   const auto start = clock::now();
@@ -632,12 +653,15 @@ void viewer::smooth_line() {
   cout << "time = " << time << " s\n"
        << "heat time = " << heat_time << " s\n"
        << "geodesic time = " << geoesic_time << " s\n"
+       << "tolerance = " << tolerance << '\n'
        << endl;
 
   device_line.vertices.clear();
   for (const auto& v : path)
     device_line.vertices.push_back(vec3{real(v.x), real(v.y), real(v.z)});
   device_line.update();
+
+  cout << "smoothed line vertices = " << device_line.vertices.size() << endl;
 }
 
 }  // namespace hyperreflex
