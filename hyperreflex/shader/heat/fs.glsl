@@ -60,12 +60,12 @@ void main() {
   float line_delta = 1.0;
   float alpha = 1.0;
   vec4 line_color = vec4(vec3(0.5), alpha);
-  // float mix_value =
-  //     smoothstep(line_width - line_delta, line_width + line_delta, d);
-  float mix_value = 1.0;
+  float mix_value =
+      smoothstep(line_width - line_delta, line_width + line_delta, d);
+  // float mix_value = 1.0;
   // Compute viewer shading.
-  // float s = abs(normalize(nor).z);
-  float s = abs(normalize(vnor).z);
+  float s = abs(normalize(nor).z);
+  // float s = abs(normalize(vnor).z);
   float light = 0.2 + 1.0 * pow(s, 1000) + 0.75 * pow(s, 0.2);
   // float light = 0.2 + 0.75 * pow(s, 0.2);
   vec4 light_color = vec4(vec3(light), alpha);

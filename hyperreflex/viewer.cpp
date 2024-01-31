@@ -60,7 +60,9 @@ void viewer::update_view() {
     shader.bind()
         .set("projection", camera.projection_matrix())
         .set("view", camera.view_matrix())
-        .try_set("viewport", camera.viewport_matrix());
+        .try_set("viewport", camera.viewport_matrix())
+        .try_set("viewport_width", camera.screen_width())
+        .try_set("viewport_height", camera.screen_height());
   });
 }
 
@@ -108,7 +110,7 @@ void viewer::render() {
 
   if (initial_line_drawing) {
     glLineWidth(4.0f);
-    shaders.names["initial"]->second.shader.bind();
+    shaders.names["line"]->second.shader.bind();
     // device_initial_line.render();
     device_initial_line.device_handle.bind();
     glDrawArrays(GL_LINE_STRIP, 0, device_initial_line.vertices.size());
