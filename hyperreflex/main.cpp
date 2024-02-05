@@ -53,6 +53,7 @@ int main(int argc, const char* argv[]) {
   app.viewer.load_shader(path / "shader/unoriented", "unoriented");
   app.viewer.load_shader(path / "shader/inconsistent", "inconsistent");
   app.viewer.load_shader(path / "shader/line", "line");
+  app.viewer.load_shader(path / "shader/oit", "oit");
 
   app.run();
 }

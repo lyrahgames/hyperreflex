@@ -1,4 +1,12 @@
-#version 330 core
+#version 420 core
+
+// Order-Independent Transparency
+//
+layout (early_fragment_tests) in;
+layout (binding = 0, offset = 0) uniform atomic_uint index_counter;
+layout (binding = 0, rgba32ui) uniform uimageBuffer list_buffer;
+layout (binding = 1, r32ui) uniform uimage2DRect head_pointer_image;
+
 
 uniform bool lighting = true;
 
@@ -8,7 +16,7 @@ in vec3 vnor;
 in float hea;
 noperspective in vec3 edge_distance;
 
-layout(location = 0) out vec4 frag_color;
+// layout(location = 0) out vec4 frag_color;
 
 // float colormap_f(float x, float phase) {
 //   const float pi = 3.141592653589793238462643383279502884197169399;
@@ -58,7 +66,7 @@ void main() {
   d = min(d, edge_distance.z);
   float line_width = 0.01;
   float line_delta = 1.0;
-  float alpha = 1.0;
+  float alpha = 0.5;
   vec4 line_color = vec4(vec3(0.5), alpha);
   float mix_value =
       smoothstep(line_width - line_delta, line_width + line_delta, d);
@@ -73,7 +81,19 @@ void main() {
   vec4 color = vec4(vec3(colormap(hea)), alpha);
   //light_color = mix(color, light_color, 0.0);
   if (!lighting) light_color = color;
-  frag_color = mix(line_color, light_color, mix_value);
+  vec4 frag_color = mix(line_color, light_color, mix_value);
   // if (mix_value > 0.9) discard;
   //   frag_color = (1 - mix_value) * line_color;
+
+
+  // Order-Independent Transparency
+  //
+  uint index = atomicCounterIncrement(index_counter);
+  uint old_head = imageAtomicExchange(head_pointer_image, ivec2(gl_FragCoord.xy), index);
+  uvec4 item;
+  item.x = old_head;
+  item.y = packUnorm4x8(frag_color);
+  item.z = floatBitsToUint(gl_FragCoord.z);
+  item.w = 0;
+  imageStore(list_buffer, int(index), item);
 }

@@ -138,6 +138,18 @@ class viewer {
   bool lighting = true;
   bool smooth_line_drawing = true;
   bool initial_line_drawing = true;
+
+  // Order-Independent Transparency
+  //
+  static constexpr uint32 max_framebuffer_width = 2048;
+  static constexpr uint32 max_framebuffer_height = 2048;
+  GLuint* data = nullptr;
+  size_t total_pixels = max_framebuffer_width * max_framebuffer_height;
+
+  GLuint head_pointer_texture;
+  GLuint head_pointer_initializer;
+  GLuint atomic_counter_buffer;
+  GLuint fragment_storage_buffer;
 };
 
 }  // namespace hyperreflex

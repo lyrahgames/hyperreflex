@@ -22,8 +22,8 @@ viewer::viewer(int x, int y, int width, int height) {
   // glEnable(GL_POINT_SMOOTH);
   // glEnable(GL_POINT_SPRITE);
   glEnable(GL_PROGRAM_POINT_SIZE);
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  // glEnable(GL_BLEND);
+  // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glPointSize(10.0f);
   glLineWidth(4.0f);
 
@@ -34,6 +34,32 @@ viewer::viewer(int x, int y, int width, int height) {
 
   device_initial_line.setup();
   device_line.setup();
+
+  // Order-Independent Transparency
+  //
+  glGenTextures(1, &head_pointer_texture);
+  glBindTexture(GL_TEXTURE_2D, head_pointer_texture);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_R32UI, max_framebuffer_width,
+               max_framebuffer_height, 0, GL_RED_INTEGER, GL_UNSIGNED_INT,
+               nullptr);
+  //
+  glGenBuffers(1, &head_pointer_initializer);
+  glBindBuffer(GL_PIXEL_UNPACK_BUFFER, head_pointer_initializer);
+  glBufferData(GL_PIXEL_UNPACK_BUFFER, total_pixels * sizeof(GLuint), nullptr,
+               GL_STATIC_DRAW);
+  data = (GLuint*)glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
+  memset(data, 0xff, total_pixels * sizeof(GLuint));
+  glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+  //
+  glGenBuffers(1, &atomic_counter_buffer);
+  glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomic_counter_buffer);
+  glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), nullptr,
+               GL_DYNAMIC_COPY);
+  //
+  glGenBuffers(1, &fragment_storage_buffer);
+  glBindBuffer(GL_TEXTURE_BUFFER, fragment_storage_buffer);
+  glBufferData(GL_TEXTURE_BUFFER, 2 * total_pixels * sizeof(vec4), nullptr,
+               GL_DYNAMIC_COPY);
 }
 
 void viewer::resize(int x, int y, int width, int height) {
@@ -58,8 +84,8 @@ void viewer::update_view() {
 
   shaders.apply([this](opengl::shader_program_handle shader) {
     shader.bind()
-        .set("projection", camera.projection_matrix())
-        .set("view", camera.view_matrix())
+        .try_set("projection", camera.projection_matrix())
+        .try_set("view", camera.view_matrix())
         .try_set("viewport", camera.viewport_matrix())
         .try_set("viewport_width", camera.screen_width())
         .try_set("viewport_height", camera.screen_height());
@@ -81,33 +107,43 @@ void viewer::update() {
 
   shaders.reload([this](opengl::shader_program_handle shader) {
     shader.bind()
-        .set("projection", camera.projection_matrix())
-        .set("view", camera.view_matrix())
+        .try_set("projection", camera.projection_matrix())
+        .try_set("view", camera.view_matrix())
         .try_set("viewport", camera.viewport_matrix());
   });
 }
 
 void viewer::render() {
+  // Order-Independent Transparency
+  //
+  glBindBuffer(GL_PIXEL_UNPACK_BUFFER, head_pointer_initializer);
+  glBindTexture(GL_TEXTURE_2D, head_pointer_texture);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_R32UI, max_framebuffer_width,
+               max_framebuffer_height, 0, GL_RED_INTEGER, GL_UNSIGNED_INT,
+               nullptr);
+  glBindImageTexture(0, head_pointer_texture, 0, GL_FALSE, 0, GL_READ_WRITE,
+                     GL_R32UI);
+  glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, atomic_counter_buffer);
+  const GLuint zero = 0;
+  glBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(zero), &zero);
+
+  //
+  //
   glEnable(GL_SCISSOR_TEST);
   glScissor(camera.screen_offset_x(), camera.screen_offset_y(),
             camera.screen_width(), camera.screen_height());
   glViewport(camera.screen_offset_x(), camera.screen_offset_y(),
              camera.screen_width(), camera.screen_height());
   glClearColor(1.0, 1.0, 1.0, 1.0);
-  glClearDepth(1.0);
+  // glClearDepth(1.0);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-  glDepthFunc(GL_LEQUAL);
-  // surface_shader.bind();
-  shaders.names["flat"]->second.shader.bind();
-  // surface.render();
-  surface.render();
 
   // shaders.names["contours"]->second.shader.bind();
   // surface.render();
 
-  glDepthFunc(GL_ALWAYS);
-
+  // Render opaque stuff first
+  //
+  // glDepthFunc(GL_ALWAYS);
   if (initial_line_drawing) {
     glLineWidth(4.0f);
     shaders.names["line"]->second.shader.bind();
@@ -115,7 +151,6 @@ void viewer::render() {
     device_initial_line.device_handle.bind();
     glDrawArrays(GL_LINE_STRIP, 0, device_initial_line.vertices.size());
   }
-
   if (smooth_line_drawing) {
     glLineWidth(4.0f);
     shaders.names["points"]->second.shader.bind();
@@ -123,6 +158,18 @@ void viewer::render() {
     device_line.device_handle.bind();
     glDrawArrays(GL_LINE_STRIP, 0, device_line.vertices.size());
   }
+
+  // Render transparent stuff and use OIT
+  //
+  // glDepthFunc(GL_LEQUAL);
+  // surface_shader.bind();
+  shaders.names["flat"]->second.shader.bind();
+  // surface.render();
+  surface.render();
+  //
+  glDepthFunc(GL_ALWAYS);
+  shaders.names["oit"]->second.shader.bind();
+  glDrawArrays(GL_TRIANGLES, 0, 6);
 
   glDisable(GL_SCISSOR_TEST);
 }
